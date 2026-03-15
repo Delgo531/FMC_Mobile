@@ -5,6 +5,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.login.LoginScreen
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.register.RegisterScreen
 
 @Composable
 fun AppNavigation() {
@@ -17,6 +18,10 @@ fun AppNavigation() {
     ){
         composable(Routes.LOGIN) {
             LoginScreen(navController)
+        }
+
+        composable(Routes.REGISTER) {
+            RegisterScreen(navController)
         }
 
 
