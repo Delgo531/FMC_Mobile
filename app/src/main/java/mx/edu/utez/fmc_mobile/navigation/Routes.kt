@@ -3,4 +3,8 @@ package mx.edu.utez.fmc_mobile.navigation
 object Routes {
     const val LOGIN = "login";
     const val REGISTER = "Register";
+    const val PASSRECOVERYEMAIL = "PASSRECOVERYEMAIL";
+    const val PASSRECOVERYCODE = "PASSRECOVERYCODE";
+    const val PASSRECOVERYSUCCES = "PASSRECOVERYSUCCES"
+    const val PASSRECOVERYPASS = "PASSRECOVERYPASS"
 }

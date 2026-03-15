@@ -161,7 +161,8 @@ fun RegisterScreen(navController: NavController) {
 
 
             Row() {
-                Text(text = "¿Ya tienes una cuenta? ")
+
+                Text(text = "¿Ya tienes una cuenta? ", style = AppTypography.Body.copy(fontWeight = FontWeight.Normal), color = TextPrimary)
                 ClickableText( text = "Inicia Sesión", onClick = {navController.popBackStack()})
             }
 

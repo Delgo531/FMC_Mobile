@@ -18,6 +18,7 @@ import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
 import mx.edu.utez.fmc_mobile.ui.theme.Background
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.Surface
+import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 
 @Composable
@@ -45,14 +46,15 @@ fun TxtField(
             color = Background
         ) {
             TextField(
+                textStyle = AppTypography.Body,
                 value = value,
                 onValueChange = onValueChange,
                 placeholder = { Text(placeHolder, color = TextSecondary) },
                 leadingIcon = leadingIcon,
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
-                    focusedTextColor = TextSecondary,
-                    unfocusedTextColor = TextSecondary,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
                     cursorColor = Primary,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,

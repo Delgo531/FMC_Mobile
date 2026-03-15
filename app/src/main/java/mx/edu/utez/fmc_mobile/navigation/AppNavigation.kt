@@ -5,6 +5,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.login.LoginScreen
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoveryCode.RecoveryPassCode
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoveryEmail.RecoveryEmailScreen
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoveryPass.RecoveryPassScreen
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoverySucces.RecoveryPassSucces
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.register.RegisterScreen
 
 @Composable
@@ -22,6 +26,22 @@ fun AppNavigation() {
 
         composable(Routes.REGISTER) {
             RegisterScreen(navController)
+        }
+
+        composable(Routes.PASSRECOVERYEMAIL) {
+            RecoveryEmailScreen(navController)
+        }
+
+        composable(Routes.PASSRECOVERYCODE) {
+            RecoveryPassCode(navController)
+        }
+
+        composable(Routes.PASSRECOVERYSUCCES) {
+            RecoveryPassSucces(navController)
+        }
+
+        composable(Routes.PASSRECOVERYPASS) {
+            RecoveryPassScreen(navController)
         }
 
 
