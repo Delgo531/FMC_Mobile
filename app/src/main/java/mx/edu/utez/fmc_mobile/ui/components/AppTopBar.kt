@@ -1,7 +1,9 @@
 package mx.edu.utez.fmc_mobile.ui.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
@@ -19,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 
@@ -63,6 +66,9 @@ fun AppTopBar(
                 IconButton(onClick = onTrailingClick) {
                     Icon(imageVector = trailingIcon, contentDescription = null)
                 }
+            } else if (leadingIcon != null) {
+                // Espacio vacío para equilibrar el lado izquierdo
+                Box(modifier = Modifier.size(48.dp))
             }
         }
     )
