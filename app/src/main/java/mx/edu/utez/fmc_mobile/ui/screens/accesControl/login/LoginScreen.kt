@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.R
+import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
 import mx.edu.utez.fmc_mobile.ui.components.ClickableText
 import mx.edu.utez.fmc_mobile.ui.components.PasswordTxtField
@@ -54,7 +55,11 @@ fun LoginScreen(navController: NavHostController) {
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(32.dp))
@@ -124,7 +129,7 @@ fun LoginScreen(navController: NavHostController) {
                 Text(text = "¿No tienes una cuenta? ", style = AppTypography.Body.copy(fontWeight = FontWeight.Normal), color = TextPrimary)
                 ClickableText(
                     text = "Crear cuenta",
-                    onClick = {}
+                    onClick = { navController.navigate(Routes.REGISTER)}
                 )
             }
         }
