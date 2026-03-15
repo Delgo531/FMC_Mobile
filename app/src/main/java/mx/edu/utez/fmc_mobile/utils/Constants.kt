@@ -1,0 +1,43 @@
+package mx.edu.utez.fmc_mobile.utils
+
+object Constants {
+
+    val municipiosMorelos = listOf(
+        "Amacuzac",
+        "Atlatlahucan",
+        "Axochiapan",
+        "Ayala",
+        "Coatlán del Río",
+        "Cuautla",
+        "Cuernavaca",
+        "Emiliano Zapata",
+        "Huitzilac",
+        "Jantetelco",
+        "Jiutepec",
+        "Jojutla",
+        "Jonacatepec",
+        "Mazatepec",
+        "Miacatlán",
+        "Ocuituco",
+        "Puente de Ixtla",
+        "Temixco",
+        "Temoac",
+        "Tepalcingo",
+        "Tepoztlán",
+        "Tetecala",
+        "Tetela del Volcán",
+        "Tlalnepantla",
+        "Tlaltizapán",
+        "Tlaquiltenango",
+        "Tlayacapan",
+        "Totolapan",
+        "Xochitepec",
+        "Yautepec",
+        "Yecapixtla",
+        "Zacatepec",
+        "Zacualpan",
+        "Tlanepantla",
+        "Jiutepec",
+        "Xoxocotla"
+    )
+}
