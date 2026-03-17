@@ -1,4 +1,4 @@
-package mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoverySucces
+package mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,23 +27,21 @@ import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 
 @Composable
 fun RecoveryPassSucces(navController: NavController) {
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
-    )
-
-    {
+    ) {
         Icon(
             painter = painterResource(R.drawable.succesicon),
-            contentDescription = "email icon",
+            contentDescription = "success icon",
             modifier = Modifier.size(80.dp),
             tint = Color.Unspecified
         )
-        Spacer(modifier = Modifier.height(5.dp))
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "Contraseña actualizada correctamente",
@@ -51,20 +49,25 @@ fun RecoveryPassSucces(navController: NavController) {
             color = TextPrimary,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(5.dp))
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Tu cuenta de Reporte Ciudadano " +
-                    "Morelos ahora está protegida " +
-                    "con tu nueva clave de acceso.",
+            text = "Tu cuenta de Reporte Ciudadano Morelos ahora está protegida con tu nueva clave de acceso.",
             style = AppTypography.Body.copy(fontWeight = FontWeight.Medium),
             color = TextSecondary,
             textAlign = TextAlign.Center
         )
 
+        Spacer(modifier = Modifier.height(32.dp))
+
         PrimaryButton(
-            "Volver a login >",
-            { navController.navigate(Routes.LOGIN) }
+            text = "Volver a login >",
+            onClick = {
+                navController.navigate(Routes.LOGIN) {
+                    popUpTo(Routes.LOGIN) { inclusive = true }
+                }
+            }
         )
     }
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -16,6 +17,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
 import mx.edu.utez.fmc_mobile.ui.theme.Background
+import mx.edu.utez.fmc_mobile.ui.theme.CompletedText
+import mx.edu.utez.fmc_mobile.ui.theme.FondoError
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.Surface
 import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
@@ -27,7 +30,9 @@ fun TxtField(
     onValueChange: (String) -> Unit,
     label: String,
     placeHolder: String = "",
+
     leadingIcon: @Composable (() -> Unit)? = null,
+    errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -35,7 +40,7 @@ fun TxtField(
         Text(
             text = label,
             style = AppTypography.Body.copy(fontWeight = FontWeight.SemiBold),
-            color = TextSecondary
+            color = if (errorMessage != null) Color.Red else TextSecondary
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -55,17 +60,19 @@ fun TxtField(
                 colors = TextFieldDefaults.colors(
                     focusedTextColor = TextPrimary,
                     unfocusedTextColor = TextPrimary,
-                    cursorColor = Primary,
+                    cursorColor = if (errorMessage != null) CompletedText else Primary,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
-                    focusedContainerColor = Surface,
-                    unfocusedContainerColor = Surface
+                    focusedContainerColor = if (errorMessage != null) FondoError else Surface,
+                    unfocusedContainerColor = if (errorMessage != null) FondoError else Surface
                 ),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
         }
+
+
     }
 }
 

@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +28,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
 import mx.edu.utez.fmc_mobile.ui.theme.Background
+import mx.edu.utez.fmc_mobile.ui.theme.CompletedText
+import mx.edu.utez.fmc_mobile.ui.theme.FondoError
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.Surface
 import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
@@ -42,15 +43,15 @@ fun DropDownField(
     onOptionSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
     leadingIcon: @Composable (() -> Unit)? = null,
-
-    ) {
+    errorMessage: String? = null
+) {
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
         Text(
             text = label,
             style = AppTypography.Body.copy(fontWeight = FontWeight.SemiBold),
-            color = TextSecondary
+            color = if (errorMessage != null) Color.Red else TextSecondary
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -84,8 +85,8 @@ fun DropDownField(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent,
-                        focusedContainerColor = Surface,
-                        unfocusedContainerColor = Surface
+                        focusedContainerColor = if (errorMessage != null) FondoError else Surface,
+                        unfocusedContainerColor = if (errorMessage != null) FondoError else Surface
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
