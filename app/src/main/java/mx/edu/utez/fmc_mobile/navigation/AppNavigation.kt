@@ -10,6 +10,7 @@ import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoveryEmail.Recovery
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoveryPass.RecoveryPassScreen
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoverySucces.RecoveryPassSucces
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.register.RegisterScreen
+import mx.edu.utez.fmc_mobile.ui.screens.main.MainScreen
 
 @Composable
 fun AppNavigation() {
@@ -44,6 +45,8 @@ fun AppNavigation() {
             RecoveryPassScreen(navController)
         }
 
-
+        composable(Routes.MAIN) {
+            MainScreen()
+        }
     }
 }

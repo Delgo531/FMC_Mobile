@@ -120,7 +120,11 @@ fun LoginScreen(navController: NavHostController) {
 
             PrimaryButton(
                 text = "Iniciar Sesión",
-                onClick = {}
+                onClick = {
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(15.dp))
