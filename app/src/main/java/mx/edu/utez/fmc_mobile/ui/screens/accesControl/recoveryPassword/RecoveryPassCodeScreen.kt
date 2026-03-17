@@ -1,18 +1,22 @@
-package mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoveryCode
+package mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.R
@@ -40,14 +45,21 @@ import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 
 @Composable
-fun RecoveryPassCode(navController: NavController) {
-
+fun RecoveryPassCodeScreen(
+    navController: NavController,
+    viewModel: RecoveryViewModel = viewModel()
+) {
+    val recoveryState by viewModel.recoveryState.collectAsState()
     var otpValue by remember { mutableStateOf("") }
 
-
+    LaunchedEffect(recoveryState) {
+        if (recoveryState is RecoveryState.CodeVerified) {
+            viewModel.resetState()
+            navController.navigate(Routes.PASSRECOVERYPASS)
+        }
+    }
 
     Scaffold(
-
         topBar = {
             AppTopBar(
                 "Verificar",
@@ -71,15 +83,19 @@ fun RecoveryPassCode(navController: NavController) {
                 modifier = Modifier.size(80.dp),
                 tint = Color.Unspecified
             )
-            Spacer(modifier = Modifier.height(5.dp))
 
-            Text(text = "Revisa tu correo", style = AppTypography.Title.copy(fontWeight = FontWeight.SemiBold), color = TextPrimary)
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "Crea una nueva clave segura para acceder a tu " +
-                        "cuenta y seguir reportando incidentes en Morelos." +
-                        "",
+                text = "Revisa tu correo",
+                style = AppTypography.Title.copy(fontWeight = FontWeight.SemiBold),
+                color = TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = "Ingresa el código de 4 dígitos que enviamos a ${viewModel.savedEmail}",
                 style = AppTypography.Body.copy(fontWeight = FontWeight.Medium),
                 color = TextSecondary,
                 textAlign = TextAlign.Center
@@ -87,22 +103,48 @@ fun RecoveryPassCode(navController: NavController) {
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            OtpField(otpValue = otpValue,
-                onOtpChange = { otpValue = it })
-
-            Spacer(modifier = Modifier.height(15.dp))
-
-            PrimaryButton(
-                "Continuar >",
-                onClick = {navController.navigate(Routes.PASSRECOVERYPASS)}
+            OtpField(
+                otpValue = otpValue,
+                onOtpChange = { otpValue = it }
             )
 
             Spacer(modifier = Modifier.height(15.dp))
 
+            PrimaryButton(
+                text = if (recoveryState is RecoveryState.Loading) "Verificando..." else "Continuar >",
+                onClick = {
+                    if (recoveryState !is RecoveryState.Loading) {
+                        viewModel.verifyCode(otpValue)
+                    }
+                }
+            )
 
-            Row() {
-                Text(text = "¿No recibiste el código? ", style = AppTypography.Body.copy(fontWeight = FontWeight.Normal), color = TextPrimary)
-                ClickableText( text = "Reenviar código", onClick = {})
+            Spacer(modifier = Modifier.height(15.dp))
+
+            when (recoveryState) {
+                is RecoveryState.Loading -> CircularProgressIndicator()
+                is RecoveryState.Error -> Text(
+                    text = (recoveryState as RecoveryState.Error).message,
+                    color = Color.Red,
+                    style = AppTypography.Body,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                else -> {}
+            }
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            Row {
+                Text(
+                    text = "¿No recibiste el código? ",
+                    style = AppTypography.Body.copy(fontWeight = FontWeight.Normal),
+                    color = TextPrimary
+                )
+                ClickableText(
+                    text = "Reenviar código",
+                    onClick = { viewModel.forgotPassword(viewModel.savedEmail) }
+                )
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -116,8 +158,8 @@ fun RecoveryPassCode(navController: NavController) {
 
 @Preview
 @Composable
-fun RecoveryPassCodePreview() {
+fun RecoveryPassCodeScreenPreview() {
     FMC_MobileTheme {
-        RecoveryPassCode(navController = rememberNavController())
+        RecoveryPassCodeScreen(navController = rememberNavController())
     }
 }

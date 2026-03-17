@@ -1,20 +1,24 @@
 package mx.edu.utez.fmc_mobile.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.login.LoginScreen
-import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoveryCode.RecoveryPassCode
-import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoveryEmail.RecoveryEmailScreen
-import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoveryPass.RecoveryPassScreen
-import mx.edu.utez.fmc_mobile.ui.screens.accesControl.passRecoverySucces.RecoveryPassSucces
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword.RecoveryEmailScreen
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword.RecoveryPassCodeScreen
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword.RecoveryPassScreen
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword.RecoveryPassSucces
+import mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword.RecoveryViewModel
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.register.RegisterScreen
+import mx.edu.utez.fmc_mobile.ui.screens.home.Home
 
 @Composable
 fun AppNavigation() {
 
     val navController = rememberNavController()
+    val recoveryViewModel: RecoveryViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -29,21 +33,23 @@ fun AppNavigation() {
         }
 
         composable(Routes.PASSRECOVERYEMAIL) {
-            RecoveryEmailScreen(navController)
+            RecoveryEmailScreen(navController, recoveryViewModel)
         }
 
         composable(Routes.PASSRECOVERYCODE) {
-            RecoveryPassCode(navController)
+            RecoveryPassCodeScreen(navController, recoveryViewModel)
+        }
+
+        composable(Routes.PASSRECOVERYPASS) {
+            RecoveryPassScreen(navController, recoveryViewModel)
         }
 
         composable(Routes.PASSRECOVERYSUCCES) {
             RecoveryPassSucces(navController)
         }
 
-        composable(Routes.PASSRECOVERYPASS) {
-            RecoveryPassScreen(navController)
+        composable(Routes.HOME) {
+            Home(navController)
         }
-
-
     }
 }

@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,8 +29,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.R
@@ -44,14 +49,28 @@ import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 
 @Composable
-fun LoginScreen(navController: NavHostController) {
+fun LoginScreen(
+    navController: NavHostController,
+    viewModel: LoginViewModel = viewModel()
+) {
+    val loginState by viewModel.loginState.collectAsState()
+    val usernameError by viewModel.usernameError.collectAsState()
+    val passwordError by viewModel.passwordError.collectAsState()
 
-    var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    LaunchedEffect(loginState) {
+        if (loginState is LoginState.Success) {
+            navController.navigate(Routes.HOME) {
+                popUpTo(Routes.LOGIN) { inclusive = true }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
-            AppTopBar( "Inicio de Sesión")
+            AppTopBar("Inicio de Sesión")
         }
     ) { paddingValues ->
         Column(
@@ -70,37 +89,48 @@ fun LoginScreen(navController: NavHostController) {
                 modifier = Modifier.size(80.dp),
                 tint = Color.Unspecified
             )
+
             Spacer(modifier = Modifier.height(5.dp))
 
-            Text(text = "¡ Bienvenido !", style = AppTypography.Title.copy(fontWeight = FontWeight.SemiBold), color = TextPrimary)
+            Text(
+                text = "¡ Bienvenido !",
+                style = AppTypography.Title.copy(fontWeight = FontWeight.SemiBold),
+                color = TextPrimary
+            )
+
             Spacer(modifier = Modifier.height(5.dp))
 
-            Text(text = "Mejorando Morelos Juntos", style = AppTypography.Body.copy(fontWeight = FontWeight.Medium), color = TextSecondary)
+            Text(
+                text = "Mejorando Morelos Juntos",
+                style = AppTypography.Body.copy(fontWeight = FontWeight.Medium),
+                color = TextSecondary
+            )
 
             Spacer(modifier = Modifier.height(30.dp))
 
             TxtField(
-                value =email,
-                 onValueChange = {email = it},
-                label = "Correo Electrónico",
-                placeHolder = "tucorreo@dominio.com",
+                value = username,
+                onValueChange = { username = it },
+                label = "Usuario",
+                placeHolder = "Tu nombre de usuario",
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = "Email",
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Usuario",
                         tint = Primary
                     )
-                }
+                },
+                errorMessage = if (usernameError) "" else null
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-
             PasswordTxtField(
                 value = password,
-                onValueChange = {password = it},
+                onValueChange = { password = it },
                 label = "Contraseña",
-                placeHolder = "••••••••"
+                placeHolder = "••••••••",
+                errorMessage = if (passwordError) "" else null
             )
 
             Spacer(modifier = Modifier.height(15.dp))
@@ -110,36 +140,59 @@ fun LoginScreen(navController: NavHostController) {
                 horizontalArrangement = Arrangement.End
             ) {
                 ClickableText(
-                    text = "¿Olivadaste tu contraseña?",
-                    onClick = { navController.navigate(Routes.PASSRECOVERYEMAIL)}
+                    text = "¿Olvidaste tu contraseña?",
+                    onClick = { navController.navigate(Routes.PASSRECOVERYEMAIL) }
                 )
             }
-
 
             Spacer(modifier = Modifier.height(15.dp))
 
             PrimaryButton(
-                text = "Iniciar Sesión",
-                onClick = {}
+                text = if (loginState is LoginState.Loading) "Iniciando..." else "Iniciar Sesión",
+                onClick = {
+                    if (loginState !is LoginState.Loading) {
+                        viewModel.login(username, password)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(15.dp))
 
-            Row{
-                Text(text = "¿No tienes una cuenta? ", style = AppTypography.Body.copy(fontWeight = FontWeight.Normal), color = TextPrimary)
+            when (loginState) {
+                is LoginState.Loading -> CircularProgressIndicator()
+                is LoginState.Error -> Text(
+                    text = (loginState as LoginState.Error).message,
+                    color = Color.Red,
+                    style = AppTypography.Body,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                else -> {}
+            }
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            Row {
+                Text(
+                    text = "¿No tienes una cuenta? ",
+                    style = AppTypography.Body.copy(fontWeight = FontWeight.Normal),
+                    color = TextPrimary
+                )
                 ClickableText(
                     text = "Crear cuenta",
-                    onClick = { navController.navigate(Routes.REGISTER)}
+                    onClick = { navController.navigate(Routes.REGISTER) }
                 )
             }
-        }
 
+            Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
 
-@Preview
+@Preview(showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
-fun prev(){
-    FMC_MobileTheme() { LoginScreen(navController = rememberNavController()); }
-
+fun LoginScreenPreview() {
+    FMC_MobileTheme {
+        LoginScreen(navController = rememberNavController())
+    }
 }
