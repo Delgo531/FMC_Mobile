@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import mx.edu.utez.fmc_mobile.data.local.AuthTokenStore
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.LoginRequest
 import mx.edu.utez.fmc_mobile.data.repository.AuthRepository
 
@@ -44,6 +45,8 @@ class LoginViewModel : ViewModel() {
             try {
                 val response = repository.login(LoginRequest(username, password))
                 if (response.isSuccessful) {
+                    // Guardar JWT para llamadas autenticadas (reportes, cuadrillas, etc.)
+                    AuthTokenStore.setToken(response.body()?.token)
                     _loginState.value = LoginState.Success
                 } else {
                     val errorBody = response.errorBody()?.string()

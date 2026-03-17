@@ -62,7 +62,9 @@ fun LoginScreen(
 
     LaunchedEffect(loginState) {
         if (loginState is LoginState.Success) {
-            navController.navigate(Routes.HOME) {
+            // Al iniciar sesión correctamente, navegar al contenedor principal
+            // con el bottom nav (Inicio, Cuadrilla, Mis Reportes, Mi Perfil).
+            navController.navigate(Routes.MAIN) {
                 popUpTo(Routes.LOGIN) { inclusive = true }
             }
         }
