@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
 
         // Sesión por defecto: ciudadano sin cuadrilla. Al integrar login con API,
         // actualizar con role (y squad si aplica) desde AuthResponse o GET /me.
-        val defaultSession = UserSession(role = UserRole.CITIZEN, squad = null)
+        val defaultSession = UserSession(role = UserRole.ADMIN, squad = null)
 
         setContent {
             FMC_MobileTheme(darkTheme = false) {

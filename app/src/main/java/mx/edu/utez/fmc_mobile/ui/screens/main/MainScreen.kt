@@ -1,5 +1,6 @@
 package mx.edu.utez.fmc_mobile.ui.screens.main
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -28,6 +29,7 @@ import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.screens.cuadrilla.CuadrillaScreen
 import mx.edu.utez.fmc_mobile.ui.screens.home.HomeScreen
 import mx.edu.utez.fmc_mobile.ui.screens.myReports.MyReportsScreen
+import mx.edu.utez.fmc_mobile.ui.screens.profile.ProfileScreen
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 

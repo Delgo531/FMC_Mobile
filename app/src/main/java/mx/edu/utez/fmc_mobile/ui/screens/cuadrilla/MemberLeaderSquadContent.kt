@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -31,10 +32,6 @@ import mx.edu.utez.fmc_mobile.ui.theme.Surface
 import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 
-/**
- * Contenido de la pestaña Cuadrilla para usuarios que ya son miembro o líder de una cuadrilla.
- * Muestra nombre de la cuadrilla, municipio, contadores Pendientes/Resueltos, lista de miembros y botón Abandonar.
- */
 @Composable
 fun MemberLeaderSquadContent(
     squad: SquadInfo,
@@ -52,6 +49,7 @@ fun MemberLeaderSquadContent(
             style = AppTypography.Subtitle,
             color = TextPrimary
         )
+
         Text(
             text = "${squad.municipality}, Morelos",
             style = AppTypography.Body,
@@ -62,8 +60,16 @@ fun MemberLeaderSquadContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            CountChip(label = "Pendientes", count = squad.pendingCount)
-            CountChip(label = "Resueltos", count = squad.resolvedCount)
+            CountChip(
+                label = "Pendientes",
+                count = squad.pendingCount,
+                modifier = Modifier.weight(1f)
+            )
+            CountChip(
+                label = "Resueltos",
+                count = squad.resolvedCount,
+                modifier = Modifier.weight(1f)
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -92,10 +98,11 @@ fun MemberLeaderSquadContent(
 @Composable
 private fun CountChip(
     label: String,
-    count: Int
+    count: Int,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier.weight(1f),
+        modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -136,13 +143,16 @@ private fun SquadMemberCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = member.username,
                     style = AppTypography.Body.copy(fontWeight = FontWeight.Medium),
                     color = TextPrimary
                 )
             }
+
             if (member.role == SquadRole.LEADER) {
                 Box(
                     modifier = Modifier
