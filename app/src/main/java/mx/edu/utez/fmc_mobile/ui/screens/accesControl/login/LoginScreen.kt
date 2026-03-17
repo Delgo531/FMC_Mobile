@@ -60,6 +60,8 @@ fun LoginScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
+    val hasError = loginState is LoginState.Error
+
     LaunchedEffect(loginState) {
         if (loginState is LoginState.Success) {
             navController.navigate(Routes.HOME) {
@@ -120,7 +122,8 @@ fun LoginScreen(
                         tint = Primary
                     )
                 },
-                errorMessage = if (usernameError) "" else null
+                errorMessage = if (usernameError || hasError) "" else null
+
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -130,7 +133,7 @@ fun LoginScreen(
                 onValueChange = { password = it },
                 label = "Contraseña",
                 placeHolder = "••••••••",
-                errorMessage = if (passwordError) "" else null
+                errorMessage = if (passwordError || hasError) "" else null
             )
 
             Spacer(modifier = Modifier.height(15.dp))

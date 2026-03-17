@@ -1,4 +1,4 @@
-package mx.edu.utez.fmc_mobile.ui.screens.home
+package mx.edu.utez.fmc_mobile.ui.screens.reports
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,16 +26,15 @@ import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
 import mx.edu.utez.fmc_mobile.ui.components.BottomNavBar
 import mx.edu.utez.fmc_mobile.ui.components.ReportCard
 import mx.edu.utez.fmc_mobile.ui.components.SearchBar
-import mx.edu.utez.fmc_mobile.ui.components.SimpleLabel
 import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 
 @Composable
-fun Home(navController: NavController) {
+fun ReportsScreen(navController: NavController) {
 
     var busqueda by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = { AppTopBar(title = "Reportes Morelos", subtitle = "Fix My City", leadingIcon = Icons.Default.AddLocation, trailingIcon = Icons.Default.AddCircle, ) },
+        topBar = { AppTopBar(title = "Mis Reportes", subtitle = "Historial",leadingIcon = Icons.Default.AddLocation, trailingIcon = Icons.Default.AddCircle) },
         bottomBar = { BottomNavBar(navController = navController) }
     ) { paddingValues ->
         Column(
@@ -45,17 +44,11 @@ fun Home(navController: NavController) {
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Spacer(modifier = Modifier.height(20.dp))
 
-            SearchBar(busqueda, onValueChange = {busqueda = it})
+            SearchBar(busqueda, onValueChange = { busqueda = it })
 
             Spacer(modifier = Modifier.height(20.dp))
-
-            SimpleLabel("Municipio", modifier = Modifier)
-
-            Spacer(modifier = Modifier.height(22.dp))
-
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -71,7 +64,6 @@ fun Home(navController: NavController) {
                         imageUrls = emptyList()
                     )
                 }
-
             }
         }
     }
@@ -79,8 +71,8 @@ fun Home(navController: NavController) {
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
-fun HomePreview() {
+fun ReportsScreenPreview() {
     FMC_MobileTheme {
-        Home(navController = rememberNavController())
+        ReportsScreen(navController = rememberNavController())
     }
 }

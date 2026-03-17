@@ -50,6 +50,8 @@ fun RecoveryPassScreen(
     val recoveryState by viewModel.recoveryState.collectAsState()
     var password1 by remember { mutableStateOf("") }
     var password2 by remember { mutableStateOf("") }
+    val hasError = recoveryState is RecoveryState.Error
+
 
     LaunchedEffect(recoveryState) {
         if (recoveryState is RecoveryState.PasswordReset) {
@@ -106,7 +108,8 @@ fun RecoveryPassScreen(
                 value = password1,
                 onValueChange = { password1 = it },
                 label = "Nueva contraseña",
-                placeHolder = "••••••••"
+                placeHolder = "••••••••",
+                errorMessage = if (hasError) "" else null
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -115,7 +118,8 @@ fun RecoveryPassScreen(
                 value = password2,
                 onValueChange = { password2 = it },
                 label = "Confirmar nueva contraseña",
-                placeHolder = "••••••••"
+                placeHolder = "••••••••",
+                errorMessage = if (hasError) "" else null
             )
 
             Spacer(modifier = Modifier.height(15.dp))

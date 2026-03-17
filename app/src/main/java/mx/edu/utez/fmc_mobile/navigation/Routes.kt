@@ -8,4 +8,8 @@ object Routes {
     const val PASSRECOVERYSUCCES = "PASSRECOVERYSUCCES";
     const val PASSRECOVERYPASS = "PASSRECOVERYPASS";
     const val HOME = "home";
+    const val TEAMS = "teams"
+    const val REPORTS = "reports"
+    const val PROFILE = "profile"
+    const val UPDATEPROFILE = "updateprofile"
 }

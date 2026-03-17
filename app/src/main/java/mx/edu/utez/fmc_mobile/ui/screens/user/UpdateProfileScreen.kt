@@ -1,11 +1,8 @@
-package mx.edu.utez.fmc_mobile.ui.screens.accesControl.register
+package mx.edu.utez.fmc_mobile.ui.screens.user
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,15 +11,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,15 +30,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.R
 import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
-import mx.edu.utez.fmc_mobile.ui.components.ClickableText
+import mx.edu.utez.fmc_mobile.ui.components.BottomNavBar
 import mx.edu.utez.fmc_mobile.ui.components.DropDownField
-import mx.edu.utez.fmc_mobile.ui.components.PasswordTxtField
+import mx.edu.utez.fmc_mobile.ui.components.LogoutButton
 import mx.edu.utez.fmc_mobile.ui.components.PrimaryButton
 import mx.edu.utez.fmc_mobile.ui.components.TxtField
 import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
@@ -54,37 +48,15 @@ import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 import mx.edu.utez.fmc_mobile.utils.Constants
 
 @Composable
-fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = viewModel()) {
-
-
-
-    val registerState by viewModel.registerState.collectAsState()
-    val usernameError by viewModel.usernameError.collectAsState()
-    val emailError by viewModel.emailError.collectAsState()
-    val passwordError by viewModel.passwordError.collectAsState()
-    val municipioError by viewModel.municipioError.collectAsState()
+fun UpdateProfileScreen(navController: NavController) {
 
     var userName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
     var municipio by remember { mutableStateOf("") }
 
-    val hasError = registerState is RegisterState.Error
-
-    LaunchedEffect(registerState) {
-        if (registerState is RegisterState.Success) {
-            navController.navigate(Routes.LOGIN)
-        }
-    }
-
     Scaffold(
-        topBar = {
-            AppTopBar(
-                "Registro",
-                leadingIcon = Icons.Default.ArrowBackIosNew,
-                onLeadingClick = { navController.popBackStack() }
-            )
-        }
+        topBar = { AppTopBar(title = "Mi perfil", leadingIcon = Icons.Default.ArrowBackIosNew, onLeadingClick = {navController.popBackStack()}) },
+        bottomBar = { BottomNavBar(navController = navController) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -98,7 +70,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
 
             Icon(
                 painter = painterResource(R.drawable.usericon),
-                contentDescription = "Login icon",
+                contentDescription = null,
                 modifier = Modifier.size(80.dp),
                 tint = Color.Unspecified
             )
@@ -106,7 +78,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "Crear Cuenta",
+                text = "Jane Doe",
                 style = AppTypography.Title.copy(fontWeight = FontWeight.SemiBold),
                 color = TextPrimary
             )
@@ -114,7 +86,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "Únete para reportar y mejorar la\ninfrastructura de Morelos.",
+                text = "example@domain.com",
                 style = AppTypography.Body.copy(fontWeight = FontWeight.Medium),
                 color = TextSecondary,
                 textAlign = TextAlign.Center
@@ -130,11 +102,10 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Nombre de Usuario",
+                        contentDescription = null,
                         tint = Primary
                     )
-                },
-                errorMessage = if (usernameError || hasError) "" else null
+                }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -147,21 +118,10 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Email,
-                        contentDescription = "Email",
+                        contentDescription = null,
                         tint = Primary
                     )
-                },
-                errorMessage = if (emailError || hasError) "" else null
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            PasswordTxtField(
-                value = password,
-                onValueChange = { password = it },
-                label = "Contraseña *",
-                placeHolder = "Mínimo 8 caracteres",
-                errorMessage = if (passwordError || hasError) "" else null
+                }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -174,66 +134,28 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Map,
-                        contentDescription = "Municipio",
+                        contentDescription = null,
                         tint = Primary
                     )
-                },
-                errorMessage = if (municipioError || hasError) "" else null
-            )
-
-            Spacer(modifier = Modifier.height(15.dp))
-
-            PrimaryButton(
-                text = if (registerState is RegisterState.Loading) "Registrando..." else "Registrarse",
-                onClick = {
-                    if (registerState !is RegisterState.Loading) {
-                        viewModel.register(
-                            username = userName,
-                            email = email,
-                            password = password,
-                            municipality = municipio
-                        )
-                    }
                 }
             )
 
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            when (registerState) {
-                is RegisterState.Loading -> CircularProgressIndicator()
-                is RegisterState.Error -> Text(
-                    text = (registerState as RegisterState.Error).message,
-                    color = Color.Red,
-                    style = AppTypography.Body,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                else -> {}
-            }
-
-            Spacer(modifier = Modifier.height(15.dp))
-
-            Row {
-                Text(
-                    text = "¿Ya tienes una cuenta? ",
-                    style = AppTypography.Body.copy(fontWeight = FontWeight.Normal),
-                    color = TextPrimary
-                )
-                ClickableText(
-                    text = "Inicia Sesión",
-                    onClick = { navController.popBackStack() }
-                )
-            }
+            PrimaryButton(
+                text = "Guardar",
+                onClick = {}
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
-@Preview(showBackground = true, widthDp = 360, heightDp = 800)
+@Preview()
 @Composable
-fun RegisterScreenPreview() {
+fun UpdateProfileScreenPreview() {
     FMC_MobileTheme {
-        RegisterScreen(navController = rememberNavController())
+        UpdateProfileScreen(navController = rememberNavController())
     }
 }

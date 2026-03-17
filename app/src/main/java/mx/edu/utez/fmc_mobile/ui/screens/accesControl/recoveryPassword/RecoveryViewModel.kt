@@ -71,7 +71,7 @@ class RecoveryViewModel : ViewModel() {
                     _recoveryState.value = RecoveryState.CodeVerified
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    android.util.Log.d("OTP_DEBUG", "Error body: '$errorBody'")  // ← agrega esto
+                    android.util.Log.d("OTP_DEBUG", "Error body: '$errorBody'")
                     android.util.Log.d("OTP_DEBUG", "Código HTTP: ${response.code()}")
                     val errorMessage = try {
                         org.json.JSONObject(errorBody ?: "").getString("message")
