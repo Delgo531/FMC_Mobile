@@ -14,8 +14,10 @@ import mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword.RecoveryV
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.register.RegisterScreen
 import mx.edu.utez.fmc_mobile.ui.screens.home.Home
 import mx.edu.utez.fmc_mobile.ui.screens.profile.ProfileScreen
+import mx.edu.utez.fmc_mobile.ui.screens.reports.NewReportScreen
 import mx.edu.utez.fmc_mobile.ui.screens.reports.ReportsScreen
-import mx.edu.utez.fmc_mobile.ui.screens.teams.TeamsScreen
+import mx.edu.utez.fmc_mobile.ui.screens.teams.ReportDetailsScreen
+import mx.edu.utez.fmc_mobile.ui.screens.teams.joinRequest.TeamsScreen
 import mx.edu.utez.fmc_mobile.ui.screens.user.UpdateProfileScreen
 
 @Composable
@@ -70,6 +72,14 @@ fun AppNavigation() {
 
         composable(Routes.UPDATEPROFILE) {
             UpdateProfileScreen(navController)
+        }
+
+        composable(Routes.UPDATEPROFILE) {
+            NewReportScreen(navController)
+        }
+
+        composable(Routes.REPORTDETAILS) {
+            ReportDetailsScreen(navController)
         }
 
     }

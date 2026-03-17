@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Map
@@ -39,6 +40,7 @@ import mx.edu.utez.fmc_mobile.ui.components.BottomNavBar
 import mx.edu.utez.fmc_mobile.ui.components.DropDownField
 import mx.edu.utez.fmc_mobile.ui.components.LogoutButton
 import mx.edu.utez.fmc_mobile.ui.components.PrimaryButton
+import mx.edu.utez.fmc_mobile.ui.components.SuccessBottomSheet
 import mx.edu.utez.fmc_mobile.ui.components.TxtField
 import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
 import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
@@ -53,10 +55,11 @@ fun UpdateProfileScreen(navController: NavController) {
     var userName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var municipio by remember { mutableStateOf("") }
+    var showBottomSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = { AppTopBar(title = "Mi perfil", leadingIcon = Icons.Default.ArrowBackIosNew, onLeadingClick = {navController.popBackStack()}) },
-        bottomBar = { BottomNavBar(navController = navController) }
+
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -144,11 +147,29 @@ fun UpdateProfileScreen(navController: NavController) {
 
             PrimaryButton(
                 text = "Guardar",
-                onClick = {}
+                onClick = { showBottomSheet = true }
+
             )
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+    if (showBottomSheet) {
+        SuccessBottomSheet(
+            title = "¡Perfil Actualizado!",
+            message = "Tus cambios han sido guardados exitosamente en tu perfil de ciudadano de Morelos.",
+            buttonText = "Continuar",
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.padding(14.dp)
+                )
+            },
+            onButtonClick = { showBottomSheet = false },
+            onDismiss = { showBottomSheet = false }
+        )
     }
 }
 

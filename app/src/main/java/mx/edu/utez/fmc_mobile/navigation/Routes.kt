@@ -12,4 +12,6 @@ object Routes {
     const val REPORTS = "reports"
     const val PROFILE = "profile"
     const val UPDATEPROFILE = "updateprofile"
+    const val CREATEREPORT = "createreport"
+    const val REPORTDETAILS = "reportdetails"
 }

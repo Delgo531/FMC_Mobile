@@ -22,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
 import mx.edu.utez.fmc_mobile.ui.components.BottomNavBar
 import mx.edu.utez.fmc_mobile.ui.components.ReportCard
@@ -34,7 +35,8 @@ fun ReportsScreen(navController: NavController) {
     var busqueda by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = { AppTopBar(title = "Mis Reportes", subtitle = "Historial",leadingIcon = Icons.Default.AddLocation, trailingIcon = Icons.Default.AddCircle) },
+        topBar = { AppTopBar(title = "Mis Reportes", subtitle = "Historial",leadingIcon = Icons.Default.AddLocation, trailingIcon = Icons.Default.AddCircle, onTrailingClick = {navController.navigate(
+            Routes.CREATEREPORT)}) },
         bottomBar = { BottomNavBar(navController = navController) }
     ) { paddingValues ->
         Column(
