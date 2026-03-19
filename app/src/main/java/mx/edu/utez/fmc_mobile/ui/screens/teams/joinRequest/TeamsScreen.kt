@@ -25,9 +25,9 @@ import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.*
 import mx.edu.utez.fmc_mobile.ui.theme.*
 
-// "NONE" → no es voluntario
-// "PENDING" → solicitud pendiente
-// "MEMBER" → ya es miembro de una cuadrilla
+// "NONE"
+// "PENDING"
+// "MEMBER"
 private enum class UserStatus { NONE, PENDING, MEMBER }
 
 @Composable

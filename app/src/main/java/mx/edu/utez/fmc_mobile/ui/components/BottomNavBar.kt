@@ -8,8 +8,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.theme.*
 
@@ -20,10 +22,11 @@ data class BottomNavItem(
 )
 
 private val items = listOf(
-    BottomNavItem("Inicio",       Icons.Filled.Home,       Routes.HOME),
-    BottomNavItem("Cuadrilla",    Icons.Filled.Groups,     Routes.TEAMS),
-    BottomNavItem("Mis reportes", Icons.Filled.Assignment, Routes.REPORTS),
-    BottomNavItem("Mi perfil",    Icons.Filled.Person,     Routes.PROFILE)
+    BottomNavItem("Inicio",         Icons.Filled.Home,         Routes.HOME),
+    BottomNavItem("Cuadrilla",      Icons.Filled.Groups,       Routes.TEAMS),
+    BottomNavItem("Reportes",   Icons.Filled.Assignment,   Routes.REPORTS),
+    BottomNavItem("Avisos", Icons.Filled.Notifications,Routes.NOTIFICATIONS),
+    BottomNavItem("Mi perfil",      Icons.Filled.Person,       Routes.PROFILE)
 )
 
 @Composable
@@ -57,5 +60,13 @@ fun BottomNavBar(
                 )
             )
         }
+    }
+}
+
+@Preview
+@Composable
+fun BottomNavBarPreview() {
+    FMC_MobileTheme {
+        BottomNavBar(navController = rememberNavController())
     }
 }
