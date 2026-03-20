@@ -14,29 +14,44 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.ui.components.*
 import mx.edu.utez.fmc_mobile.ui.theme.*
 
 @Composable
-fun ReportDetailsScreen(navController: NavController) {
+fun ReportDetailsScreen(
+    navController: NavController,
+    assignmentId: Long = -1L,
+    viewModel: ReportDetailsViewModel = viewModel()
+) {
 
     var selectedStatus by remember { mutableStateOf("PENDING") }
     var images by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var observations by remember { mutableStateOf("") }
     var showSuccessSheet by remember { mutableStateOf(false) }
 
+    val actionState by viewModel.actionState.collectAsState()
+    val context = LocalContext.current
+
     val isCompleted = selectedStatus == "COMPLETED"
+
+    LaunchedEffect(actionState) {
+        if (actionState is ReportActionState.Success) {
+            showSuccessSheet = true
+        }
+    }
 
     Scaffold(
         topBar = {
             AppTopBar(
-                title = "Reporte #1",
-                subtitle = "Calle Principal #123, Temixco",
+                title = "Reporte #$assignmentId",
+                subtitle = "Detalle de reporte asignado",
                 leadingIcon = Icons.Default.ArrowBackIosNew,
                 onLeadingClick = { navController.popBackStack() },
                 leadingIconTint = Primary
@@ -118,6 +133,23 @@ fun ReportDetailsScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            when (actionState) {
+                is ReportActionState.Loading -> {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                is ReportActionState.Error -> {
+                    Text(
+                        text = (actionState as ReportActionState.Error).message,
+                        color = Color.Red,
+                        style = AppTypography.BodySmall,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                else -> {}
+            }
+
             if (!isCompleted) {
                 Text(
                     text = "Complete el reporte para habilitar la finalización",
@@ -130,8 +162,16 @@ fun ReportDetailsScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(12.dp))
 
             PrimaryButton(
-                text = "Finalizar Reporte",
-                onClick = { if (isCompleted) showSuccessSheet = true },
+                text = if (actionState is ReportActionState.Loading) "Procesando..." else if (isCompleted) "Finalizar Reporte" else "Actualizar Estado",
+                onClick = {
+                    if (actionState !is ReportActionState.Loading && assignmentId > 0) {
+                        if (isCompleted && images.size == 3) {
+                            viewModel.closeWithEvidence(context, assignmentId, images, observations.ifBlank { null })
+                        } else if (!isCompleted) {
+                            viewModel.changeStatus(assignmentId, selectedStatus, observations.ifBlank { null })
+                        }
+                    }
+                },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Sync,
@@ -161,9 +201,13 @@ fun ReportDetailsScreen(navController: NavController) {
             },
             onButtonClick = {
                 showSuccessSheet = false
+                viewModel.resetState()
                 navController.popBackStack()
             },
-            onDismiss = { showSuccessSheet = false }
+            onDismiss = {
+                showSuccessSheet = false
+                viewModel.resetState()
+            }
         )
     }
 }

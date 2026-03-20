@@ -19,30 +19,40 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.*
+import mx.edu.utez.fmc_mobile.ui.screens.teams.TeamsViewModel
 import mx.edu.utez.fmc_mobile.ui.theme.*
 
-// "NONE"
-// "PENDING"
-// "MEMBER"
-private enum class UserStatus { NONE, PENDING, MEMBER }
-
 @Composable
-fun TeamsScreen(navController: NavController) {
+fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewModel()) {
 
-    var userStatus by remember { mutableStateOf(UserStatus.MEMBER) }
+    val userStatus by viewModel.userStatus.collectAsState()
+    val squadInfo by viewModel.squadInfo.collectAsState()
+    val assignedReports by viewModel.assignedReports.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val actionSuccess by viewModel.actionSuccess.collectAsState()
+
     var showJoinSheet by remember { mutableStateOf(false) }
     var showCancelSheet by remember { mutableStateOf(false) }
     var showLeaveSheet by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
 
+    // Show snackbar for messages
+    LaunchedEffect(actionSuccess) {
+        if (actionSuccess != null) {
+            viewModel.clearMessages()
+        }
+    }
+
     Scaffold(
         topBar = {
             when (userStatus) {
-                UserStatus.MEMBER -> AppTopBar(
+                "MEMBER" -> AppTopBar(
                     title = "Mi Cuadrilla",
                     subtitle = "Fix My City",
                     leadingIcon = Icons.Default.LocationOn,
@@ -53,7 +63,7 @@ fun TeamsScreen(navController: NavController) {
                 else -> AppTopBar(
                     title = "Mi Cuadrilla",
                     subtitle = "Fix My City",
-                    trailingIcon = if (userStatus == UserStatus.NONE) Icons.Default.GroupAdd else null,
+                    trailingIcon = if (userStatus == "NONE") Icons.Default.GroupAdd else null,
                     onTrailingClick = { showJoinSheet = true }
                 )
             }
@@ -69,113 +79,135 @@ fun TeamsScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            when (userStatus) {
-                UserStatus.NONE, UserStatus.PENDING -> {
-                    InfoCard(
-                        title = "Información sobre voluntarios:",
-                        message = "Los ciudadanos voluntarios son personas que ayudan a mantener esta aplicación funcionando, si gustas unirte como voluntario lo puedes hacer mediante el botón de \"Unirme\" en la esquina superior derecha o en el siguiente botón.",
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = Primary
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                when (userStatus) {
+                    "NONE", "PENDING" -> {
+                        InfoCard(
+                            title = "Información sobre voluntarios:",
+                            message = "Los ciudadanos voluntarios son personas que ayudan a mantener esta aplicación funcionando, si gustas unirte como voluntario lo puedes hacer mediante el botón de \"Unirme\" en la esquina superior derecha o en el siguiente botón.",
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = Primary
+                                )
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        if (userStatus == "PENDING") {
+                            Text(
+                                text = "Solicitud Pendiente",
+                                style = AppTypography.Body.copy(fontWeight = FontWeight.SemiBold),
+                                color = Primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            PrimaryButton(
+                                text = "Cancelar solicitud",
+                                onClick = { showCancelSheet = true }
+                            )
+                        } else {
+                            PrimaryButton(
+                                text = "¡Quiero ser voluntario!",
+                                onClick = { showJoinSheet = true }
                             )
                         }
-                    )
 
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    if (userStatus == UserStatus.PENDING) {
-                        Text(
-                            text = "Solicitud Pendiente",
-                            style = AppTypography.Body.copy(fontWeight = FontWeight.SemiBold),
-                            color = Primary
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        PrimaryButton(
-                            text = "Cancelar solicitud",
-                            onClick = { showCancelSheet = true }
-                        )
-                    } else {
-                        PrimaryButton(
-                            text = "¡Quiero ser voluntario!",
-                            onClick = { showJoinSheet = true }
-                        )
-                    }
-                }
-
-                UserStatus.MEMBER -> {
-                    SquadCard(
-                        squadName = "Cuadrilla 1 Temixco",
-                        municipality = "Temixco, Morelos",
-                        role = "Líder"
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Tabs
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("Pendientes", "Resueltos").forEachIndexed { index, label ->
-                            val selected = selectedTab == index
-                            Button(
-                                onClick = { selectedTab = index },
-                                shape = RoundedCornerShape(50.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (selected) Primary else Color.White,
-                                    contentColor = if (selected) Color.White else TextSecondary
-                                ),
-                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = label,
-                                    style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold)
-                                )
-                            }
+                        if (errorMessage != null) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = errorMessage ?: "",
+                                color = Color.Red,
+                                style = AppTypography.BodySmall
+                            )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    "MEMBER" -> {
+                        val squadName = squadInfo?.get("name")?.toString() ?: "Mi Cuadrilla"
+                        val squadMunicipality = squadInfo?.get("municipality")?.toString() ?: ""
+                        val userRole = squadInfo?.get("userRole")?.toString() ?: "MEMBER"
 
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (selectedTab == 0) {
-                            item {
-                                AssignedReportCard(
-                                    username = "JEMB1432",
-                                    createdAt = "2026-03-15T17:26:25.299875",
-                                    status = "REGISTERED",
-                                    title = "Ubicacion proporcionada",
-                                    address = "Calle Principal #123, Colonia Centro",
-                                    description = "Descripción de la denuncia...",
-                                    currentVotes = 1,
-                                    totalVotes = 5,
-                                    imageUrls = emptyList(),
-                                    onClick = { navController.navigate(Routes.REPORTDETAILS) },
-                                    onAccept = {},
-                                    onReject = {}
-                                )
+                        SquadCard(
+                            squadName = squadName,
+                            municipality = squadMunicipality.ifBlank { "Morelos" },
+                            role = when (userRole) {
+                                "LEADER" -> "Líder"
+                                "MEMBER" -> "Miembro"
+                                else -> userRole
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Tabs
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("Pendientes", "Resueltos").forEachIndexed { index, label ->
+                                val selected = selectedTab == index
+                                Button(
+                                    onClick = { selectedTab = index },
+                                    shape = RoundedCornerShape(50.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (selected) Primary else Color.White,
+                                        contentColor = if (selected) Color.White else TextSecondary
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val filteredReports = if (selectedTab == 0) {
+                            assignedReports.filter {
+                                it.assignmentStatus != "COMPLETED" && it.assignmentStatus != "REJECTED"
                             }
                         } else {
-                            item {
-                                AssignedReportCard(
-                                    username = "JEMB1432",
-                                    createdAt = "2026-03-15T17:26:25.299875",
-                                    status = "COMPLETED",
-                                    title = "Bache resuelto",
-                                    address = "Calle Principal #123, Colonia Centro",
-                                    description = "Descripción de la denuncia...",
-                                    currentVotes = 5,
-                                    totalVotes = 5,
-                                    imageUrls = emptyList(),
-                                    onClick = { navController.navigate(Routes.REPORTDETAILS) },
-                                    onAccept = {},
-                                    onReject = {}
-                                )
+                            assignedReports.filter {
+                                it.assignmentStatus == "COMPLETED" || it.assignmentStatus == "REJECTED"
                             }
                         }
-                        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+                        if (filteredReports.isEmpty()) {
+                            Text(
+                                text = if (selectedTab == 0) "No hay reportes pendientes" else "No hay reportes resueltos",
+                                color = TextSecondary,
+                                style = AppTypography.BodySmall
+                            )
+                        } else {
+                            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                items(filteredReports) { report ->
+                                    AssignedReportCard(
+                                        username = report.citizenUsername,
+                                        createdAt = report.reportCreatedAt,
+                                        status = report.reportStatus,
+                                        title = report.title,
+                                        address = report.address,
+                                        description = report.description,
+                                        currentVotes = 0,
+                                        totalVotes = 0,
+                                        imageUrls = report.photos.map { it.filePath },
+                                        onClick = { navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}") },
+                                        onAccept = { viewModel.voteReport(report.assignmentId, "ACCEPT") },
+                                        onReject = { viewModel.voteReport(report.assignmentId, "REJECT") }
+                                    )
+                                }
+                                item { Spacer(modifier = Modifier.height(16.dp)) }
+                            }
+                        }
                     }
                 }
             }
@@ -197,7 +229,7 @@ fun TeamsScreen(navController: NavController) {
                 )
             },
             onButtonClick = {
-                userStatus = UserStatus.PENDING
+                viewModel.applyAsVolunteer()
                 showJoinSheet = false
             },
             onSecondaryButtonClick = { showJoinSheet = false },
@@ -220,7 +252,6 @@ fun TeamsScreen(navController: NavController) {
                 )
             },
             onButtonClick = {
-                userStatus = UserStatus.NONE
                 showCancelSheet = false
             },
             onSecondaryButtonClick = { showCancelSheet = false },
@@ -243,7 +274,7 @@ fun TeamsScreen(navController: NavController) {
                 )
             },
             onButtonClick = {
-                userStatus = UserStatus.NONE
+                viewModel.leaveSquad("") // TODO: ask for password
                 showLeaveSheet = false
             },
             onSecondaryButtonClick = { showLeaveSheet = false },

@@ -8,6 +8,9 @@ import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.R
@@ -25,6 +29,8 @@ import mx.edu.utez.fmc_mobile.ui.components.BottomNavBar
 import mx.edu.utez.fmc_mobile.ui.components.InfoCard
 import mx.edu.utez.fmc_mobile.ui.components.LogoutButton
 import mx.edu.utez.fmc_mobile.ui.components.TxtDisplay
+import mx.edu.utez.fmc_mobile.ui.screens.user.LogoutState
+import mx.edu.utez.fmc_mobile.ui.screens.user.ProfileViewModel
 import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
 import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
@@ -32,7 +38,21 @@ import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = viewModel()) {
+
+    val username by viewModel.username.collectAsState()
+    val email by viewModel.email.collectAsState()
+    val municipality by viewModel.municipality.collectAsState()
+    val logoutState by viewModel.logoutState.collectAsState()
+
+    LaunchedEffect(logoutState) {
+        if (logoutState is LogoutState.Success) {
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
     Scaffold(
         topBar = { AppTopBar(title = "Mi perfil", leadingIcon = Icons.Default.AddLocation, trailingIcon = Icons.Default.Create, onTrailingClick = {navController.navigate(
             Routes.UPDATEPROFILE)}) },
@@ -58,7 +78,7 @@ fun ProfileScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "Jane Doe",
+                text = username.ifBlank { "Usuario" },
                 style = AppTypography.Title.copy(fontWeight = FontWeight.SemiBold),
                 color = TextPrimary
             )
@@ -66,7 +86,7 @@ fun ProfileScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "example@domain.com",
+                text = email.ifBlank { "correo@dominio.com" },
                 style = AppTypography.Body.copy(fontWeight = FontWeight.Medium),
                 color = TextSecondary,
                 textAlign = TextAlign.Center
@@ -76,7 +96,7 @@ fun ProfileScreen(navController: NavController) {
 
             TxtDisplay(
                 label = "Usuario",
-                value = "Jane Doe",
+                value = username.ifBlank { "No disponible" },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
@@ -90,7 +110,7 @@ fun ProfileScreen(navController: NavController) {
 
             TxtDisplay(
                 label = "Municipio",
-                value = "Municipio Actual",
+                value = municipality.ifBlank { "No disponible" },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
@@ -101,11 +121,7 @@ fun ProfileScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(15.dp))
             LogoutButton(onClick = {
-
-                navController.navigate(Routes.LOGIN){
-                    popUpTo(0) {inclusive = true}
-                }
-
+                viewModel.logout()
             })
             Spacer(modifier = Modifier.height(15.dp))
 

@@ -1,7 +1,6 @@
 package mx.edu.utez.fmc_mobile.data.remote.service
 
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.CreateReportRequest
-import mx.edu.utez.fmc_mobile.data.remote.dto.response.ReportResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -11,11 +10,17 @@ import retrofit2.http.Path
 interface ReportApiService {
 
     @POST("api/reports")
-    suspend fun createReport(@Body request: CreateReportRequest): Response<ReportResponse>
+    suspend fun createReport(@Body request: CreateReportRequest): Response<Map<String, Any>>
 
     @GET("api/reports/{id}")
-    suspend fun getReportById(@Path("id") id: Long): Response<ReportResponse>
+    suspend fun getReportById(@Path("id") id: Long): Response<Map<String, Any>>
 
     @GET("api/reports")
-    suspend fun getAllReports(): Response<List<ReportResponse>>
+    suspend fun getAllReports(): Response<Map<String, Any>>
+
+    @GET("api/reports/my-reports")
+    suspend fun getMyReports(): Response<Map<String, Any>>
+
+    @GET("api/reports/municipality/{municipality}")
+    suspend fun getReportsByMunicipality(@Path("municipality") municipality: String): Response<Map<String, Any>>
 }

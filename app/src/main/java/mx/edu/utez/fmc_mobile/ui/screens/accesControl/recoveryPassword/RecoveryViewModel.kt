@@ -49,11 +49,7 @@ class RecoveryViewModel : ViewModel() {
     }
 
     fun verifyCode(code: String) {
-
         val cleanCode = code.filter { it.isDigit() }
-        android.util.Log.d("OTP_DEBUG", "Código original: '$code'")      // ← aquí
-        android.util.Log.d("OTP_DEBUG", "Código limpio: '$cleanCode'")   // ← aquí
-        android.util.Log.d("OTP_DEBUG", "Email: '$savedEmail'")
 
         if (cleanCode.isBlank() || cleanCode.length != 4) {
             _recoveryState.value = RecoveryState.Error("Ingresa el código de 4 dígitos")
@@ -67,12 +63,13 @@ class RecoveryViewModel : ViewModel() {
                     VerifyResetCodeRequest(email = savedEmail, code = cleanCode)
                 )
                 if (response.isSuccessful) {
-                    savedResetToken = response.body()?.resetToken ?: ""
+                    // API returns StandardResponse: { status, message, data: { resetToken } }
+                    val body = response.body()
+                    val data = body?.get("data") as? Map<*, *>
+                    savedResetToken = data?.get("resetToken")?.toString() ?: ""
                     _recoveryState.value = RecoveryState.CodeVerified
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    android.util.Log.d("OTP_DEBUG", "Error body: '$errorBody'")
-                    android.util.Log.d("OTP_DEBUG", "Código HTTP: ${response.code()}")
                     val errorMessage = try {
                         org.json.JSONObject(errorBody ?: "").getString("message")
                     } catch (e: Exception) {

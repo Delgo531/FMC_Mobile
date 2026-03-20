@@ -2,9 +2,11 @@ package mx.edu.utez.fmc_mobile.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.login.LoginScreen
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword.RecoveryEmailScreen
 import mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword.RecoveryPassCodeScreen
@@ -20,6 +22,7 @@ import mx.edu.utez.fmc_mobile.ui.screens.reports.ReportsScreen
 import mx.edu.utez.fmc_mobile.ui.screens.teams.ReportDetailsScreen
 import mx.edu.utez.fmc_mobile.ui.screens.teams.joinRequest.TeamsScreen
 import mx.edu.utez.fmc_mobile.ui.screens.user.UpdateProfileScreen
+import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 @Composable
 fun AppNavigation() {
@@ -27,9 +30,12 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val recoveryViewModel: RecoveryViewModel = viewModel()
 
+    // Start on HOME if already logged in, LOGIN otherwise
+    val startDestination = if (SessionManager.isLoggedIn()) Routes.HOME else Routes.LOGIN
+
     NavHost(
         navController = navController,
-        startDestination = Routes.LOGIN
+        startDestination = startDestination
     ){
         composable(Routes.LOGIN) {
             LoginScreen(navController)
@@ -79,6 +85,15 @@ fun AppNavigation() {
             NewReportScreen(navController)
         }
 
+        composable(
+            route = "${Routes.REPORTDETAILS}/{assignmentId}",
+            arguments = listOf(navArgument("assignmentId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val assignmentId = backStackEntry.arguments?.getLong("assignmentId") ?: -1L
+            ReportDetailsScreen(navController, assignmentId = assignmentId)
+        }
+
+        // Also keep the old route for backward compatibility
         composable(Routes.REPORTDETAILS) {
             ReportDetailsScreen(navController)
         }

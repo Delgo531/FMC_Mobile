@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import mx.edu.utez.fmc_mobile.data.remote.RetrofitClient
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.LoginRequest
 import mx.edu.utez.fmc_mobile.data.repository.AuthRepository
+import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 class LoginViewModel : ViewModel() {
 
@@ -44,7 +46,22 @@ class LoginViewModel : ViewModel() {
             try {
                 val response = repository.login(LoginRequest(username, password))
                 if (response.isSuccessful) {
-                    _loginState.value = LoginState.Success
+                    val body = response.body()
+                    if (body != null) {
+                        // API returns StandardResponse: { status, message, data: { token } }
+                        val data = body["data"] as? Map<*, *>
+                        val token = data?.get("token")?.toString()
+                        if (token != null) {
+                            SessionManager.saveToken(token)
+                            // Fetch user profile to save user data
+                            fetchAndSaveUserProfile(username)
+                            _loginState.value = LoginState.Success
+                        } else {
+                            _loginState.value = LoginState.Error("No se recibió token de autenticación")
+                        }
+                    } else {
+                        _loginState.value = LoginState.Error("Respuesta vacía del servidor")
+                    }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     val errorMessage = try {
@@ -57,6 +74,29 @@ class LoginViewModel : ViewModel() {
             } catch (e: Exception) {
                 _loginState.value = LoginState.Error(e.message ?: "Error desconocido")
             }
+        }
+    }
+
+    private suspend fun fetchAndSaveUserProfile(username: String) {
+        try {
+            val userResponse = RetrofitClient.userApi.getUserByUsername(username)
+            if (userResponse.isSuccessful) {
+                val userBody = userResponse.body()
+                if (userBody != null) {
+                    val userData = userBody["data"] as? Map<*, *>
+                    if (userData != null) {
+                        val id = (userData["id"] as? Double)?.toLong() ?: -1L
+                        val uname = userData["username"]?.toString() ?: username
+                        val email = userData["email"]?.toString() ?: ""
+                        val municipality = userData["municipality"]?.toString() ?: ""
+                        val role = userData["role"]?.toString() ?: "CITIZEN"
+                        val isVolunteer = userData["isVolunteer"] as? Boolean ?: false
+                        SessionManager.saveUserData(id, uname, email, municipality, role, isVolunteer)
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // If profile fetch fails, we still have the token and username from JWT
         }
     }
 }

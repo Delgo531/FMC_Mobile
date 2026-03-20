@@ -3,6 +3,7 @@ package mx.edu.utez.fmc_mobile.ui.screens.user
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -12,13 +13,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,14 +35,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.R
-import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
-import mx.edu.utez.fmc_mobile.ui.components.BottomNavBar
 import mx.edu.utez.fmc_mobile.ui.components.DropDownField
-import mx.edu.utez.fmc_mobile.ui.components.LogoutButton
+import mx.edu.utez.fmc_mobile.ui.components.PasswordTxtField
 import mx.edu.utez.fmc_mobile.ui.components.PrimaryButton
 import mx.edu.utez.fmc_mobile.ui.components.SuccessBottomSheet
 import mx.edu.utez.fmc_mobile.ui.components.TxtField
@@ -48,14 +51,24 @@ import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 import mx.edu.utez.fmc_mobile.utils.Constants
+import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 @Composable
-fun UpdateProfileScreen(navController: NavController) {
+fun UpdateProfileScreen(navController: NavController, viewModel: ProfileViewModel = viewModel()) {
 
-    var userName by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var municipio by remember { mutableStateOf("") }
+    var userName by remember { mutableStateOf(SessionManager.getUsername()) }
+    var email by remember { mutableStateOf(SessionManager.getEmail()) }
+    var password by remember { mutableStateOf("") }
+    var municipio by remember { mutableStateOf(SessionManager.getMunicipality()) }
     var showBottomSheet by remember { mutableStateOf(false) }
+
+    val updateState by viewModel.updateState.collectAsState()
+
+    LaunchedEffect(updateState) {
+        if (updateState is UpdateProfileState.Success) {
+            showBottomSheet = true
+        }
+    }
 
     Scaffold(
         topBar = { AppTopBar(title = "Mi perfil", leadingIcon = Icons.Default.ArrowBackIosNew, onLeadingClick = {navController.popBackStack()}) },
@@ -81,7 +94,7 @@ fun UpdateProfileScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "Jane Doe",
+                text = SessionManager.getUsername().ifBlank { "Usuario" },
                 style = AppTypography.Title.copy(fontWeight = FontWeight.SemiBold),
                 color = TextPrimary
             )
@@ -89,7 +102,7 @@ fun UpdateProfileScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "example@domain.com",
+                text = SessionManager.getEmail().ifBlank { "correo@dominio.com" },
                 style = AppTypography.Body.copy(fontWeight = FontWeight.Medium),
                 color = TextSecondary,
                 textAlign = TextAlign.Center
@@ -129,6 +142,15 @@ fun UpdateProfileScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            PasswordTxtField(
+                value = password,
+                onValueChange = { password = it },
+                label = "Contraseña actual *",
+                placeHolder = "Ingresa tu contraseña para confirmar"
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             DropDownField(
                 label = "Municipio *",
                 options = Constants.municipiosMorelos,
@@ -145,10 +167,31 @@ fun UpdateProfileScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            PrimaryButton(
-                text = "Guardar",
-                onClick = { showBottomSheet = true }
+            when (updateState) {
+                is UpdateProfileState.Loading -> {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                is UpdateProfileState.Error -> {
+                    Text(
+                        text = (updateState as UpdateProfileState.Error).message,
+                        color = Color.Red,
+                        style = AppTypography.BodySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                else -> {}
+            }
 
+            PrimaryButton(
+                text = if (updateState is UpdateProfileState.Loading) "Guardando..." else "Guardar",
+                onClick = {
+                    if (updateState !is UpdateProfileState.Loading) {
+                        viewModel.updateProfile(userName, email, password, municipio)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -167,8 +210,15 @@ fun UpdateProfileScreen(navController: NavController) {
                     modifier = Modifier.padding(14.dp)
                 )
             },
-            onButtonClick = { showBottomSheet = false },
-            onDismiss = { showBottomSheet = false }
+            onButtonClick = {
+                showBottomSheet = false
+                viewModel.resetUpdateState()
+                navController.popBackStack()
+            },
+            onDismiss = {
+                showBottomSheet = false
+                viewModel.resetUpdateState()
+            }
         )
     }
 }
