@@ -53,7 +53,7 @@ class HomeViewModel : ViewModel() {
                     _errorMessage.value = try {
                         org.json.JSONObject(errorBody ?: "").getString("message")
                     } catch (_: Exception) {
-                        "Error al cargar reportes"
+                        "Error al cargar reportes (Código: ${response.code()})"
                     }
                 }
             } catch (e: Exception) {

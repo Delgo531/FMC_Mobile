@@ -34,7 +34,7 @@ class ProfileViewModel : ViewModel() {
         refreshProfile()
     }
 
-    private fun refreshProfile() {
+    fun refreshProfile() {
         _username.value = SessionManager.getUsername()
         _email.value = SessionManager.getEmail()
         _municipality.value = SessionManager.getMunicipality()
@@ -56,8 +56,8 @@ class ProfileViewModel : ViewModel() {
             _updateState.value = UpdateProfileState.Error("El nombre de usuario es obligatorio")
             return
         }
-        if (email.isBlank()) {
-            _updateState.value = UpdateProfileState.Error("El correo es obligatorio")
+        if (email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            _updateState.value = UpdateProfileState.Error("Ingresa un correo válido")
             return
         }
         if (password.isBlank()) {

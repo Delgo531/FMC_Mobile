@@ -19,6 +19,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -40,6 +43,7 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
     var showJoinSheet by remember { mutableStateOf(false) }
     var showCancelSheet by remember { mutableStateOf(false) }
     var showLeaveSheet by remember { mutableStateOf(false) }
+    var leavePassword by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(0) }
 
     // Show snackbar for messages
@@ -107,9 +111,10 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                                 color = Primary
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            PrimaryButton(
-                                text = "Cancelar solicitud",
-                                onClick = { showCancelSheet = true }
+                            Text(
+                                text = "Un administrador revisará tu solicitud pronto.",
+                                style = AppTypography.BodySmall,
+                                color = TextSecondary
                             )
                         } else {
                             PrimaryButton(
@@ -260,25 +265,49 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
     }
 
     if (showLeaveSheet) {
-        SuccessBottomSheet(
-            title = "¿Deseas salir de la cuadrilla?",
-            message = "",
-            buttonText = "Sí, abandonar",
-            secondaryButtonText = "No, permanecer en mi cuadrilla",
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.PersonRemove,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.padding(14.dp)
-                )
-            },
-            onButtonClick = {
-                viewModel.leaveSquad("") // TODO: ask for password
+        AlertDialog(
+            onDismissRequest = { 
                 showLeaveSheet = false
+                leavePassword = "" 
             },
-            onSecondaryButtonClick = { showLeaveSheet = false },
-            onDismiss = { showLeaveSheet = false }
+            title = {
+                Text(text = "¿Deseas salir de la cuadrilla?", style = AppTypography.Body.copy(fontWeight = FontWeight.Bold))
+            },
+            text = {
+                Column {
+                    Text(text = "Ingresa tu contraseña para confirmar que deseas abandonar la cuadrilla.", style = AppTypography.BodySmall)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = leavePassword,
+                        onValueChange = { leavePassword = it },
+                        label = { Text("Contraseña") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.leaveSquad(leavePassword)
+                        showLeaveSheet = false
+                        leavePassword = ""
+                    },
+                    enabled = leavePassword.isNotBlank()
+                ) {
+                    Text("Abandonar", color = Color(0xFFC62828))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showLeaveSheet = false 
+                    leavePassword = ""
+                }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            }
         )
     }
 }

@@ -45,6 +45,10 @@ class ReportDetailsViewModel : ViewModel() {
     }
 
     fun closeWithEvidence(context: Context, assignmentId: Long, images: List<Uri>, comments: String?) {
+        if (images.size != 3) {
+            _actionState.value = ReportActionState.Error("Es obligatorio subir exactamente 3 fotos de evidencia")
+            return
+        }
         viewModelScope.launch {
             _actionState.value = ReportActionState.Loading
             try {

@@ -9,8 +9,15 @@ import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,13 +43,14 @@ import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
+import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 @Composable
 fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = viewModel()) {
 
-    val username by viewModel.username.collectAsState()
-    val email by viewModel.email.collectAsState()
-    val municipality by viewModel.municipality.collectAsState()
+    var username by remember { mutableStateOf(SessionManager.getUsername()) }
+    var email by remember { mutableStateOf(SessionManager.getEmail()) }
+    var municipality by remember { mutableStateOf(SessionManager.getMunicipality()) }
     val logoutState by viewModel.logoutState.collectAsState()
 
     LaunchedEffect(logoutState) {
@@ -50,6 +58,19 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = vi
             navController.navigate(Routes.LOGIN) {
                 popUpTo(0) { inclusive = true }
             }
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshProfile()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 

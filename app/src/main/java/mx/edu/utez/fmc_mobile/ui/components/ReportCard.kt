@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mx.edu.utez.fmc_mobile.ui.theme.*
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 private fun formatApiDate(raw: String): String {
     return try {
@@ -166,6 +168,13 @@ fun ReportCard(
                     Text(
                         text = "Sin imágenes",
                         style = AppTypography.BodySmall.copy(color = TextSecondary)
+                    )
+                } else {
+                    AsyncImage(
+                        model = imageUrls[currentImage],
+                        contentDescription = "Foto del reporte",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
 

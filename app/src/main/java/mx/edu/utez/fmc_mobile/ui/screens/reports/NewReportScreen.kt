@@ -209,14 +209,16 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 showBottomSheet = false
                 viewModel.resetState()
                 navController.navigate(Routes.HOME) {
-                    popUpTo(Routes.CREATEREPORT) { inclusive = true }
+                    popUpTo(Routes.HOME) { inclusive = true }
+                    launchSingleTop = true
                 }
             },
             onSecondaryButtonClick = {
                 showBottomSheet = false
                 viewModel.resetState()
                 navController.navigate(Routes.REPORTS) {
-                    popUpTo(Routes.CREATEREPORT) { inclusive = true }
+                    popUpTo(Routes.HOME) { inclusive = false }
+                    launchSingleTop = true
                 }
             },
             onDismiss = {

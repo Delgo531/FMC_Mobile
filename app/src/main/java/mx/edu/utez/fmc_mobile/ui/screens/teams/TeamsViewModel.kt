@@ -81,23 +81,29 @@ class TeamsViewModel : ViewModel() {
                         _userStatus.value = "NONE"
                     }
                 } else {
-                    // Check if user has a pending application
+                    // Check if user has a pending application by trying to apply
+                    // If already pending, API returns 400 with "pendiente" message
                     try {
-                        val appResponse = applicationRepository.getAllApplications()
+                        val appResponse = applicationRepository.applyAsVolunteer()
                         if (appResponse.isSuccessful) {
-                            val body = appResponse.body()
-                            val data = body?.get("data")
-                            if (data != null) {
-                                val json = gson.toJson(data)
-                                val apps = gson.fromJson<List<Map<String, Any>>>(json,
-                                    object : TypeToken<List<Map<String, Any>>>() {}.type) ?: emptyList()
-                                val username = SessionManager.getUsername()
-                                val myApp = apps.find { it["username"] == username }
-                                if (myApp != null && myApp["status"] == "PENDING") {
-                                    _userStatus.value = "PENDING"
-                                } else {
-                                    _userStatus.value = "NONE"
-                                }
+                            // Successfully applied now — but we didn't intend to.
+                            // This means the user was NOT pending before.
+                            // We'll set to PENDING since application was just created.
+                            _userStatus.value = "PENDING"
+                        } else {
+                            val errorBody = appResponse.errorBody()?.string()
+                            val errorMsg = try {
+                                org.json.JSONObject(errorBody ?: "").getString("message")
+                            } catch (_: Exception) { "" }
+                            if (errorMsg.contains("pendiente", ignoreCase = true) ||
+                                errorMsg.contains("pending", ignoreCase = true)) {
+                                _userStatus.value = "PENDING"
+                            } else if (errorMsg.contains("voluntario", ignoreCase = true) ||
+                                       errorMsg.contains("volunteer", ignoreCase = true)) {
+                                // Already a volunteer, check squad membership
+                                _userStatus.value = "NONE"
+                            } else {
+                                _userStatus.value = "NONE"
                             }
                         }
                     } catch (_: Exception) {
@@ -158,10 +164,16 @@ class TeamsViewModel : ViewModel() {
                     _actionSuccess.value = "Solicitud enviada exitosamente"
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    _errorMessage.value = try {
+                    val errorMessage = try {
                         org.json.JSONObject(errorBody ?: "").getString("message")
                     } catch (_: Exception) {
-                        "Error al enviar solicitud"
+                        "Error al enviar solicitud (Código: ${response.code()})"
+                    }
+                    if (errorMessage.contains("pendiente", ignoreCase = true)) {
+                        _userStatus.value = "PENDING"
+                        _actionSuccess.value = "Ya tienes una solicitud pendiente"
+                    } else {
+                        _errorMessage.value = errorMessage
                     }
                 }
             } catch (e: Exception) {

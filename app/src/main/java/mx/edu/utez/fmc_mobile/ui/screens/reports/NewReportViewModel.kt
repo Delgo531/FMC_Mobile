@@ -27,12 +27,12 @@ class NewReportViewModel : ViewModel() {
         address: String,
         images: List<Uri>
     ) {
-        if (title.isBlank()) {
-            _createState.value = CreateReportState.Error("El título es obligatorio")
+        if (title.isBlank() || title.length < 5) {
+            _createState.value = CreateReportState.Error("El título debe tener al menos 5 caracteres")
             return
         }
-        if (description.isBlank()) {
-            _createState.value = CreateReportState.Error("La descripción es obligatoria")
+        if (description.isBlank() || description.length < 20) {
+            _createState.value = CreateReportState.Error("La descripción debe tener al menos 20 caracteres")
             return
         }
         if (address.isBlank()) {
@@ -77,7 +77,7 @@ class NewReportViewModel : ViewModel() {
                     val errorMessage = try {
                         org.json.JSONObject(errorBody ?: "").getString("message")
                     } catch (_: Exception) {
-                        "Error al crear el reporte"
+                        "Error al crear el reporte (Código: ${response.code()})"
                     }
                     _createState.value = CreateReportState.Error(errorMessage)
                 }
