@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import mx.edu.utez.fmc_mobile.data.remote.dto.request.DeactivateAccountRequest
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.UpdateUserRequest
 import mx.edu.utez.fmc_mobile.data.repository.AuthRepository
 import mx.edu.utez.fmc_mobile.data.repository.UserRepository
@@ -29,6 +30,9 @@ class ProfileViewModel : ViewModel() {
 
     private val _updateState = MutableStateFlow<UpdateProfileState>(UpdateProfileState.Idle)
     val updateState: StateFlow<UpdateProfileState> = _updateState
+
+    private val _deactivateState = MutableStateFlow<DeactivateState>(DeactivateState.Idle)
+    val deactivateState: StateFlow<DeactivateState> = _deactivateState
 
     init {
         refreshProfile()
@@ -110,6 +114,37 @@ class ProfileViewModel : ViewModel() {
     fun resetUpdateState() {
         _updateState.value = UpdateProfileState.Idle
     }
+
+    fun deactivateAccount(password: String) {
+        if (password.isBlank()) {
+            _deactivateState.value = DeactivateState.Error("La contraseña es obligatoria")
+            return
+        }
+        viewModelScope.launch {
+            _deactivateState.value = DeactivateState.Loading
+            try {
+                val response = userRepository.deactivateOwnAccount(DeactivateAccountRequest(password))
+                if (response.isSuccessful) {
+                    SessionManager.clearSession()
+                    _deactivateState.value = DeactivateState.Success
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMsg = try {
+                        org.json.JSONObject(errorBody ?: "").getString("message")
+                    } catch (_: Exception) {
+                        "Error al desactivar la cuenta"
+                    }
+                    _deactivateState.value = DeactivateState.Error(errorMsg)
+                }
+            } catch (e: Exception) {
+                _deactivateState.value = DeactivateState.Error(e.message ?: "Error desconocido")
+            }
+        }
+    }
+
+    fun resetDeactivateState() {
+        _deactivateState.value = DeactivateState.Idle
+    }
 }
 
 sealed class LogoutState {
@@ -123,4 +158,11 @@ sealed class UpdateProfileState {
     object Loading : UpdateProfileState()
     object Success : UpdateProfileState()
     data class Error(val message: String) : UpdateProfileState()
+}
+
+sealed class DeactivateState {
+    object Idle : DeactivateState()
+    object Loading : DeactivateState()
+    object Success : DeactivateState()
+    data class Error(val message: String) : DeactivateState()
 }

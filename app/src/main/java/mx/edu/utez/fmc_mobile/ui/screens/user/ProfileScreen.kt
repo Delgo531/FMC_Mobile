@@ -36,6 +36,10 @@ import mx.edu.utez.fmc_mobile.ui.components.BottomNavBar
 import mx.edu.utez.fmc_mobile.ui.components.InfoCard
 import mx.edu.utez.fmc_mobile.ui.components.LogoutButton
 import mx.edu.utez.fmc_mobile.ui.components.TxtDisplay
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import mx.edu.utez.fmc_mobile.ui.screens.user.DeactivateState
 import mx.edu.utez.fmc_mobile.ui.screens.user.LogoutState
 import mx.edu.utez.fmc_mobile.ui.screens.user.ProfileViewModel
 import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
@@ -43,18 +47,29 @@ import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
-import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 @Composable
 fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = viewModel()) {
 
-    var username by remember { mutableStateOf(SessionManager.getUsername()) }
-    var email by remember { mutableStateOf(SessionManager.getEmail()) }
-    var municipality by remember { mutableStateOf(SessionManager.getMunicipality()) }
+    val username by viewModel.username.collectAsState()
+    val email by viewModel.email.collectAsState()
+    val municipality by viewModel.municipality.collectAsState()
     val logoutState by viewModel.logoutState.collectAsState()
+    val deactivateState by viewModel.deactivateState.collectAsState()
+
+    var showDeactivateDialog by remember { mutableStateOf(false) }
+    var deactivatePassword by remember { mutableStateOf("") }
 
     LaunchedEffect(logoutState) {
         if (logoutState is LogoutState.Success) {
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
+    LaunchedEffect(deactivateState) {
+        if (deactivateState is DeactivateState.Success) {
             navController.navigate(Routes.LOGIN) {
                 popUpTo(0) { inclusive = true }
             }
@@ -144,7 +159,18 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = vi
             LogoutButton(onClick = {
                 viewModel.logout()
             })
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(
+                onClick = { showDeactivateDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Desactivar mi cuenta",
+                    style = AppTypography.BodySmall,
+                    color = Color(0xFFC62828)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
 
             InfoCard(
                 title = "Aviso de Privacidad:",
@@ -160,6 +186,73 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = vi
 
 
         }
+    }
+
+    if (showDeactivateDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeactivateDialog = false
+                deactivatePassword = ""
+                viewModel.resetDeactivateState()
+            },
+            title = {
+                Text(
+                    text = "¿Desactivar tu cuenta?",
+                    style = AppTypography.Body.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Esta acción desactivará tu cuenta. Tus reportes no serán eliminados. Ingresa tu contraseña para confirmar.",
+                        style = AppTypography.BodySmall,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = deactivatePassword,
+                        onValueChange = { deactivatePassword = it },
+                        label = { Text("Contraseña") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = deactivateState is DeactivateState.Error
+                    )
+                    if (deactivateState is DeactivateState.Error) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = (deactivateState as DeactivateState.Error).message,
+                            color = Color(0xFFC62828),
+                            style = AppTypography.BodySmall
+                        )
+                    }
+                    if (deactivateState is DeactivateState.Loading) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deactivateAccount(deactivatePassword)
+                    },
+                    enabled = deactivatePassword.isNotBlank() && deactivateState !is DeactivateState.Loading
+                ) {
+                    Text("Desactivar", color = Color(0xFFC62828))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDeactivateDialog = false
+                    deactivatePassword = ""
+                    viewModel.resetDeactivateState()
+                }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            }
+        )
     }
 }
 

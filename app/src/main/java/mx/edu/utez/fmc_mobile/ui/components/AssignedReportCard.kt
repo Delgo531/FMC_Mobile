@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Person
@@ -16,6 +17,9 @@ import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -25,11 +29,24 @@ import androidx.compose.ui.unit.dp
 import mx.edu.utez.fmc_mobile.ui.theme.*
 import mx.edu.utez.fmc_mobile.utils.formatApiDate
 
+private fun computeRemainingMinutes(assignedAt: String): Long {
+    return try {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+            .withZone(java.time.ZoneOffset.UTC)
+        val assigned = LocalDateTime.parse(assignedAt, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSSSSS][.SSS]"))
+        val deadline = assigned.plusMinutes(30)
+        val now = LocalDateTime.now(java.time.ZoneOffset.UTC)
+        ChronoUnit.MINUTES.between(now, deadline).coerceAtLeast(0)
+    } catch (_: Exception) { -1L }
+}
+
 @Composable
 fun AssignedReportCard(
     username: String,
     createdAt: String,
     status: String,
+    assignmentStatus: String = "",
+    assignedAt: String = "",
     title: String,
     address: String,
     description: String,
@@ -41,6 +58,10 @@ fun AssignedReportCard(
     onReject: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isPendingVote = assignmentStatus.equals("PENDING_VOTE", ignoreCase = true)
+    val remainingMinutes = remember(assignedAt) {
+        if (isPendingVote && assignedAt.isNotBlank()) computeRemainingMinutes(assignedAt) else -1L
+    }
     val (badgeBackground, badgeTextColor) = when (status.uppercase()) {
         "COMPLETED"  -> StatusCompleted  to CompletedText
         "REGISTERED" -> StatusPending    to PendingText
@@ -169,6 +190,31 @@ fun AssignedReportCard(
             Text(text = description, style = AppTypography.BodySmall.copy(color = TextSecondary), maxLines = 3)
 
             Spacer(modifier = Modifier.height(12.dp))
+
+            if (isPendingVote && remainingMinutes >= 0) {
+                val timerColor = if (remainingMinutes <= 5) Color(0xFFC62828) else Primary
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.HourglassEmpty,
+                        contentDescription = null,
+                        tint = timerColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (remainingMinutes == 0L) "¡Tiempo agotado!"
+                               else "Tiempo para votar: ${remainingMinutes} min",
+                        style = AppTypography.Caption.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = timerColor
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

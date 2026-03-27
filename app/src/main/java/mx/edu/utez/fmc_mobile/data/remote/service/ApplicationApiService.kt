@@ -9,6 +9,9 @@ interface ApplicationApiService {
     @POST("api/applications/volunteer")
     suspend fun applyAsVolunteer(): Response<Map<String, Any>>
 
+    @POST("api/applications/leader")
+    suspend fun applyAsLeader(): Response<Map<String, Any>>
+
     @GET("api/applications")
     suspend fun getAllApplications(): Response<Map<String, Any>>
 

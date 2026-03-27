@@ -25,6 +25,9 @@ class HomeViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
+    private val _municipality = MutableStateFlow(SessionManager.getMunicipality())
+    val municipality: StateFlow<String> = _municipality
+
     init {
         loadReports()
     }
@@ -35,6 +38,7 @@ class HomeViewModel : ViewModel() {
             _errorMessage.value = null
             try {
                 val municipality = SessionManager.getMunicipality()
+                _municipality.value = municipality
                 val response = if (municipality.isNotBlank()) {
                     repository.getReportsByMunicipality(municipality)
                 } else {

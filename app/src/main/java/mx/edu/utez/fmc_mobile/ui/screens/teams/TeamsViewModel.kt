@@ -46,6 +46,10 @@ class TeamsViewModel : ViewModel() {
     private val _actionSuccess = MutableStateFlow<String?>(null)
     val actionSuccess: StateFlow<String?> = _actionSuccess
 
+    // Key: assignmentId, Value: Pair(acceptVotes, totalNeeded)
+    private val _voteStatusMap = MutableStateFlow<Map<Long, Pair<Int, Int>>>(emptyMap())
+    val voteStatusMap: StateFlow<Map<Long, Pair<Int, Int>>> = _voteStatusMap
+
     init {
         loadUserStatus()
     }
@@ -68,8 +72,11 @@ class TeamsViewModel : ViewModel() {
                             if (data != null) {
                                 val json = gson.toJson(data)
                                 val type = object : TypeToken<List<AssignedReportResponse>>() {}.type
-                                _assignedReports.value = gson.fromJson(json, type) ?: emptyList()
+                                val reports: List<AssignedReportResponse> = gson.fromJson(json, type) ?: emptyList()
+                                _assignedReports.value = reports
+                                loadVoteStatuses(reports)
                             }
+                            SessionManager.setPendingApplication(false)
                             _userStatus.value = "MEMBER"
 
                             // Get squad info
@@ -81,32 +88,10 @@ class TeamsViewModel : ViewModel() {
                         _userStatus.value = "NONE"
                     }
                 } else {
-                    // Check if user has a pending application by trying to apply
-                    // If already pending, API returns 400 with "pendiente" message
-                    try {
-                        val appResponse = applicationRepository.applyAsVolunteer()
-                        if (appResponse.isSuccessful) {
-                            // Successfully applied now — but we didn't intend to.
-                            // This means the user was NOT pending before.
-                            // We'll set to PENDING since application was just created.
-                            _userStatus.value = "PENDING"
-                        } else {
-                            val errorBody = appResponse.errorBody()?.string()
-                            val errorMsg = try {
-                                org.json.JSONObject(errorBody ?: "").getString("message")
-                            } catch (_: Exception) { "" }
-                            if (errorMsg.contains("pendiente", ignoreCase = true) ||
-                                errorMsg.contains("pending", ignoreCase = true)) {
-                                _userStatus.value = "PENDING"
-                            } else if (errorMsg.contains("voluntario", ignoreCase = true) ||
-                                       errorMsg.contains("volunteer", ignoreCase = true)) {
-                                // Already a volunteer, check squad membership
-                                _userStatus.value = "NONE"
-                            } else {
-                                _userStatus.value = "NONE"
-                            }
-                        }
-                    } catch (_: Exception) {
+                    // Read local flag — only set to PENDING when user explicitly applies
+                    if (SessionManager.hasPendingApplication()) {
+                        _userStatus.value = "PENDING"
+                    } else {
                         _userStatus.value = "NONE"
                     }
                 }
@@ -154,12 +139,48 @@ class TeamsViewModel : ViewModel() {
         } catch (_: Exception) { }
     }
 
+    fun refreshData() {
+        val role = SessionManager.getRole()
+        val isVolunteer = SessionManager.isVolunteer()
+        if (role == "VOLUNTEER" || role == "SQUAD_LEADER" || isVolunteer) {
+            viewModelScope.launch {
+                _isLoading.value = true
+                try {
+                    val assignedResponse = assignmentRepository.getAssignedReports()
+                    if (assignedResponse.isSuccessful) {
+                        val body = assignedResponse.body()
+                        val data = body?.get("data")
+                        if (data != null) {
+                            val json = gson.toJson(data)
+                            val type = object : TypeToken<List<AssignedReportResponse>>() {}.type
+                            val reports: List<AssignedReportResponse> = gson.fromJson(json, type) ?: emptyList()
+                            _assignedReports.value = reports
+                            loadVoteStatuses(reports)
+                        }
+                        SessionManager.setPendingApplication(false)
+                        _userStatus.value = "MEMBER"
+                        loadSquadInfo()
+                    } else {
+                        _userStatus.value = "NONE"
+                    }
+                } catch (_: Exception) {
+                    _userStatus.value = "NONE"
+                } finally {
+                    _isLoading.value = false
+                }
+            }
+        }
+        // For CITIZEN users with NONE/PENDING status, no refresh needed on resume
+        // (avoids unintended side-effect of creating a new volunteer application)
+    }
+
     fun applyAsVolunteer() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 val response = applicationRepository.applyAsVolunteer()
                 if (response.isSuccessful) {
+                    SessionManager.setPendingApplication(true)
                     _userStatus.value = "PENDING"
                     _actionSuccess.value = "Solicitud enviada exitosamente"
                 } else {
@@ -170,6 +191,7 @@ class TeamsViewModel : ViewModel() {
                         "Error al enviar solicitud (Código: ${response.code()})"
                     }
                     if (errorMessage.contains("pendiente", ignoreCase = true)) {
+                        SessionManager.setPendingApplication(true)
                         _userStatus.value = "PENDING"
                         _actionSuccess.value = "Ya tienes una solicitud pendiente"
                     } else {
@@ -190,6 +212,7 @@ class TeamsViewModel : ViewModel() {
             try {
                 val response = squadRepository.leaveSquad(LeaveSquadRequest(password))
                 if (response.isSuccessful) {
+                    SessionManager.setPendingApplication(false)
                     _userStatus.value = "NONE"
                     _squadInfo.value = null
                     _assignedReports.value = emptyList()
@@ -229,6 +252,60 @@ class TeamsViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _errorMessage.value = e.message
+            }
+        }
+    }
+
+    private suspend fun loadVoteStatuses(assignments: List<AssignedReportResponse>) {
+        val pendingVote = assignments.filter {
+            it.assignmentStatus.equals("PENDING_VOTE", ignoreCase = true)
+        }
+        val map = mutableMapOf<Long, Pair<Int, Int>>()
+        for (assignment in pendingVote) {
+            try {
+                val response = assignmentRepository.getVoteStatus(assignment.assignmentId)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val data = body?.get("data") as? Map<*, *>
+                    val accept = (data?.get("acceptCount")
+                        ?: data?.get("acceptVotes")
+                        ?: data?.get("accepts")
+                        ?: data?.get("approveCount")
+                        ?: 0) as? Int ?: 0
+                    // DFR: need leader + 2 members = 3 of 5
+                    map[assignment.assignmentId] = Pair(accept, 3)
+                }
+            } catch (_: Exception) { }
+        }
+        _voteStatusMap.value = map
+    }
+
+    fun applyAsLeader() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val response = applicationRepository.applyAsLeader()
+                if (response.isSuccessful) {
+                    _actionSuccess.value = "Solicitud de liderazgo enviada. El administrador revisará tu solicitud."
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMsg = try {
+                        org.json.JSONObject(errorBody ?: "").getString("message")
+                    } catch (_: Exception) {
+                        "Error al enviar solicitud de liderazgo (Código: ${response.code()})"
+                    }
+                    if (errorMsg.contains("líder", ignoreCase = true) ||
+                        errorMsg.contains("leader", ignoreCase = true) ||
+                        errorMsg.contains("pendiente", ignoreCase = true)) {
+                        _actionSuccess.value = "Ya tienes una solicitud de liderazgo pendiente"
+                    } else {
+                        _errorMessage.value = errorMsg
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+            } finally {
+                _isLoading.value = false
             }
         }
     }

@@ -1,5 +1,6 @@
 package mx.edu.utez.fmc_mobile.ui.screens.teams.joinRequest
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -39,12 +43,27 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val actionSuccess by viewModel.actionSuccess.collectAsState()
+    val voteStatusMap by viewModel.voteStatusMap.collectAsState()
 
     var showJoinSheet by remember { mutableStateOf(false) }
     var showCancelSheet by remember { mutableStateOf(false) }
     var showLeaveSheet by remember { mutableStateOf(false) }
+    var showLeaderSheet by remember { mutableStateOf(false) }
     var leavePassword by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(0) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // Show snackbar for messages
     LaunchedEffect(actionSuccess) {
@@ -148,6 +167,31 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                             }
                         )
 
+                        if (userRole == "MEMBER") {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedButton(
+                                onClick = { showLeaderSheet = true },
+                                shape = RoundedCornerShape(50.dp),
+                                border = BorderStroke(1.dp, Primary),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = Color.White,
+                                    contentColor = Primary
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Postularme como Líder",
+                                    style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Tabs
@@ -195,15 +239,18 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                         } else {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 items(filteredReports) { report ->
+                                    val votes = voteStatusMap[report.assignmentId]
                                     AssignedReportCard(
                                         username = report.citizenUsername,
                                         createdAt = report.reportCreatedAt,
                                         status = report.reportStatus,
+                                        assignmentStatus = report.assignmentStatus,
+                                        assignedAt = report.assignedAt,
                                         title = report.title,
                                         address = report.address,
                                         description = report.description,
-                                        currentVotes = 0,
-                                        totalVotes = 0,
+                                        currentVotes = votes?.first ?: 0,
+                                        totalVotes = votes?.second ?: 3,
                                         imageUrls = report.photos.map { it.filePath },
                                         onClick = { navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}") },
                                         onAccept = { viewModel.voteReport(report.assignmentId, "ACCEPT") },
@@ -308,6 +355,29 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                     Text("Cancelar", color = TextSecondary)
                 }
             }
+        )
+    }
+
+    if (showLeaderSheet) {
+        SuccessBottomSheet(
+            title = "¿Postularte como Líder?",
+            message = "Al postularte como líder de cuadrilla, el administrador revisará tu solicitud. Si es aprobada, pasarás a ser el líder de tu cuadrilla.",
+            buttonText = "Sí, postularme",
+            secondaryButtonText = "Cancelar",
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.padding(14.dp)
+                )
+            },
+            onButtonClick = {
+                viewModel.applyAsLeader()
+                showLeaderSheet = false
+            },
+            onSecondaryButtonClick = { showLeaderSheet = false },
+            onDismiss = { showLeaderSheet = false }
         )
     }
 }

@@ -8,12 +8,12 @@ data class ReportResponse(
     val description: String,
     val address: String,
     val municipality: String,
-    val latitude: BigDecimal,
-    val longitude: BigDecimal,
+    val latitude: BigDecimal?,
+    val longitude: BigDecimal?,
     val status: String,
     val citizenId: Long,
     val citizenUsername: String,
     val photos: List<ReportPhotoResponse>,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String?
 )

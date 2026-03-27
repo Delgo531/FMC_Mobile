@@ -7,7 +7,7 @@ data class CreateReportRequest(
     val description: String,
     val address: String,
     val municipality: String,
-    val latitude: BigDecimal,
-    val longitude: BigDecimal,
+    val latitude: BigDecimal = BigDecimal.ZERO,
+    val longitude: BigDecimal = BigDecimal.ZERO,
     val photos: List<String>? = null
 )
