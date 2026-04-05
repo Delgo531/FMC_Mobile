@@ -145,8 +145,8 @@ fun UpdateProfileScreen(navController: NavController, viewModel: ProfileViewMode
             PasswordTxtField(
                 value = password,
                 onValueChange = { password = it },
-                label = "Contraseña actual *",
-                placeHolder = "Ingresa tu contraseña para confirmar"
+                label = "Nueva Contraseña (Opcional)",
+                placeHolder = "Ingresa tu nueva contraseña"
             )
 
             Spacer(modifier = Modifier.height(20.dp))

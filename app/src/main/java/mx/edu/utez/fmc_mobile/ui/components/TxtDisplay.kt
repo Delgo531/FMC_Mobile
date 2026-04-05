@@ -20,6 +20,7 @@ import mx.edu.utez.fmc_mobile.ui.theme.Background
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.StatusInProgress
 import mx.edu.utez.fmc_mobile.ui.theme.Surface
+import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 
 @Composable
@@ -60,12 +61,14 @@ fun TxtDisplay(
                     readOnly = true,
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
-                        focusedTextColor = TextSecondary,
-                        unfocusedTextColor = TextSecondary,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        disabledTextColor = TextPrimary,
                         focusedIndicatorColor = Background,
                         unfocusedIndicatorColor = Background,
                         focusedContainerColor = Background,
-                        unfocusedContainerColor = Background
+                        unfocusedContainerColor = Background,
+                        disabledContainerColor = Background
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()

@@ -9,4 +9,5 @@ class ApplicationRepository {
     suspend fun applyAsLeader() = api.applyAsLeader()
     suspend fun getAllApplications() = api.getAllApplications()
     suspend fun getPendingApplications() = api.getPendingApplications()
+    suspend fun getMyApplicationStatus() = api.getMyApplicationStatus()
 }

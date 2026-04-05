@@ -63,7 +63,7 @@ class TeamsViewModel : ViewModel() {
                 val role = SessionManager.getRole()
 
                 if (role == "VOLUNTEER" || role == "SQUAD_LEADER" || isVolunteer) {
-                    // Try to get assigned reports - if we get them, user is MEMBER
+                    // Try to get assigned reports - if we get them, user is assigned to a squad (MEMBER)
                     try {
                         val assignedResponse = assignmentRepository.getAssignedReports()
                         if (assignedResponse.isSuccessful) {
@@ -72,27 +72,42 @@ class TeamsViewModel : ViewModel() {
                             if (data != null) {
                                 val json = gson.toJson(data)
                                 val type = object : TypeToken<List<AssignedReportResponse>>() {}.type
-                                val reports: List<AssignedReportResponse> = gson.fromJson(json, type) ?: emptyList()
+                                val listJson = if (json.trimStart().startsWith("[")) json
+                                else {
+                                    val pageMap = gson.fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
+                                    gson.toJson(pageMap["content"])
+                                }
+                                val reports: List<AssignedReportResponse> = gson.fromJson(listJson, type) ?: emptyList()
                                 _assignedReports.value = reports
                                 loadVoteStatuses(reports)
                             }
                             SessionManager.setPendingApplication(false)
                             _userStatus.value = "MEMBER"
-
-                            // Get squad info
+                            // Squad info is best-effort for display only; failure does not affect status
                             loadSquadInfo()
                         } else {
-                            _userStatus.value = "NONE"
+                            // Volunteer approved but not yet assigned to a squad → waiting screen
+                            _userStatus.value = if (isVolunteer) "VOLUNTEER_WAITING" else "NONE"
                         }
                     } catch (_: Exception) {
-                        _userStatus.value = "NONE"
+                        _userStatus.value = if (isVolunteer) "VOLUNTEER_WAITING" else "NONE"
                     }
                 } else {
-                    // Read local flag — only set to PENDING when user explicitly applies
-                    if (SessionManager.hasPendingApplication()) {
-                        _userStatus.value = "PENDING"
-                    } else {
-                        _userStatus.value = "NONE"
+                    // Verify pending status from the server (SharedPreferences is cleared on reinstall)
+                    try {
+                        val statusResponse = applicationRepository.getMyApplicationStatus()
+                        if (statusResponse.isSuccessful) {
+                            val body = statusResponse.body()
+                            val data = body?.get("data") as? Map<*, *>
+                            val hasPending = data?.get("hasPendingVolunteerApplication") as? Boolean ?: false
+                            SessionManager.setPendingApplication(hasPending)
+                            _userStatus.value = if (hasPending) "PENDING" else "NONE"
+                        } else {
+                            // Fallback to local cache if request fails
+                            _userStatus.value = if (SessionManager.hasPendingApplication()) "PENDING" else "NONE"
+                        }
+                    } catch (_: Exception) {
+                        _userStatus.value = if (SessionManager.hasPendingApplication()) "PENDING" else "NONE"
                     }
                 }
             } catch (e: Exception) {
@@ -111,7 +126,12 @@ class TeamsViewModel : ViewModel() {
                 val data = body?.get("data")
                 if (data != null) {
                     val json = gson.toJson(data)
-                    val squads = gson.fromJson<List<Map<String, Any>>>(json,
+                    val listJson = if (json.trimStart().startsWith("[")) json
+                    else {
+                        val pageMap = gson.fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
+                        gson.toJson(pageMap["content"])
+                    }
+                    val squads = gson.fromJson<List<Map<String, Any>>>(listJson,
                         object : TypeToken<List<Map<String, Any>>>() {}.type) ?: emptyList()
                     val username = SessionManager.getUsername()
                     // Find squad where user is a member
@@ -153,7 +173,12 @@ class TeamsViewModel : ViewModel() {
                         if (data != null) {
                             val json = gson.toJson(data)
                             val type = object : TypeToken<List<AssignedReportResponse>>() {}.type
-                            val reports: List<AssignedReportResponse> = gson.fromJson(json, type) ?: emptyList()
+                            val listJson = if (json.trimStart().startsWith("[")) json
+                            else {
+                                val pageMap = gson.fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
+                                gson.toJson(pageMap["content"])
+                            }
+                            val reports: List<AssignedReportResponse> = gson.fromJson(listJson, type) ?: emptyList()
                             _assignedReports.value = reports
                             loadVoteStatuses(reports)
                         }
@@ -161,17 +186,30 @@ class TeamsViewModel : ViewModel() {
                         _userStatus.value = "MEMBER"
                         loadSquadInfo()
                     } else {
-                        _userStatus.value = "NONE"
+                        _userStatus.value = if (isVolunteer) "VOLUNTEER_WAITING" else "NONE"
                     }
                 } catch (_: Exception) {
-                    _userStatus.value = "NONE"
+                    _userStatus.value = if (isVolunteer) "VOLUNTEER_WAITING" else "NONE"
                 } finally {
                     _isLoading.value = false
                 }
             }
+        } else {
+            // CITIZEN users: re-check pending status from server on resume
+            // This corrects stale state when switching accounts
+            viewModelScope.launch {
+                try {
+                    val statusResponse = applicationRepository.getMyApplicationStatus()
+                    if (statusResponse.isSuccessful) {
+                        val body = statusResponse.body()
+                        val data = body?.get("data") as? Map<*, *>
+                        val hasPending = data?.get("hasPendingVolunteerApplication") as? Boolean ?: false
+                        SessionManager.setPendingApplication(hasPending)
+                        _userStatus.value = if (hasPending) "PENDING" else "NONE"
+                    }
+                } catch (_: Exception) { }
+            }
         }
-        // For CITIZEN users with NONE/PENDING status, no refresh needed on resume
-        // (avoids unintended side-effect of creating a new volunteer application)
     }
 
     fun applyAsVolunteer() {
@@ -241,7 +279,28 @@ class TeamsViewModel : ViewModel() {
                 )
                 if (response.isSuccessful) {
                     _actionSuccess.value = "Voto registrado"
-                    loadUserStatus() // Refresh
+                    // Re-fetch vote status from the authoritative endpoint after voting
+                    try {
+                        val statusResponse = assignmentRepository.getVoteStatus(assignmentId)
+                        if (statusResponse.isSuccessful) {
+                            val body = statusResponse.body()
+                            val data = body?.get("data") as? Map<*, *>
+                            val rawAccept = data?.get("acceptVotes")
+                                ?: data?.get("acceptCount")
+                                ?: data?.get("accepts")
+                                ?: data?.get("approveCount")
+                            val accept = (rawAccept as? Number)?.toInt() ?: 0
+                            _voteStatusMap.value = _voteStatusMap.value.toMutableMap().apply {
+                                put(assignmentId, Pair(accept, 3))
+                            }
+                        }
+                    } catch (_: Exception) { }
+                    // Full refresh when the vote resolved the assignment (left PENDING_VOTE)
+                    val data = response.body()?.get("data") as? Map<*, *>
+                    val resolvedStatus = (data?.get("assignmentStatus") as? String) ?: "PENDING_VOTE"
+                    if (resolvedStatus != "PENDING_VOTE") {
+                        loadUserStatus()
+                    }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     _errorMessage.value = try {
@@ -267,11 +326,13 @@ class TeamsViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     val body = response.body()
                     val data = body?.get("data") as? Map<*, *>
-                    val accept = (data?.get("acceptCount")
-                        ?: data?.get("acceptVotes")
+                    // Gson deserializes all JSON numbers as Double in Map<String, Any>,
+                    // so cast to Number first, then convert to Int.
+                    val rawAccept = data?.get("acceptVotes")
+                        ?: data?.get("acceptCount")
                         ?: data?.get("accepts")
                         ?: data?.get("approveCount")
-                        ?: 0) as? Int ?: 0
+                    val accept = (rawAccept as? Number)?.toInt() ?: 0
                     // DFR: need leader + 2 members = 3 of 5
                     map[assignment.assignmentId] = Pair(accept, 3)
                 }

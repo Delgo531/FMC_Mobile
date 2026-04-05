@@ -22,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
+import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +44,8 @@ fun AppTopBar(
             ) {
                 Text(
                     text = title,
-                    style = AppTypography.Subtitle.copy(fontWeight = FontWeight.SemiBold)
+                    style = AppTypography.Subtitle.copy(fontWeight = FontWeight.SemiBold),
+                    color = TextPrimary
                 )
                 if (subtitle != null) {
                     Text(

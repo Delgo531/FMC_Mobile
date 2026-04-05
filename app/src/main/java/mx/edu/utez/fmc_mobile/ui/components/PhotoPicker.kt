@@ -1,5 +1,6 @@
 package mx.edu.utez.fmc_mobile.ui.components
 
+import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,18 +24,27 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import android.content.pm.PackageManager
 import coil.compose.AsyncImage
 import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 import mx.edu.utez.fmc_mobile.ui.theme.Light
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.Surface
+import java.io.File
 
 private const val MAX_IMAGES = 3
 
@@ -44,14 +54,58 @@ fun PhotoPicker(
     onImagesSelected: (List<Uri>) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val isFull = images.size >= MAX_IMAGES
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
-    ) { uris ->
-        if (uris.isNotEmpty()) {
-            val combined = (images + uris).take(MAX_IMAGES)
-            onImagesSelected(combined)
+    var pendingUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Lanzador de la cámara
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            pendingUri?.let { uri ->
+                val combined = (images + uri).take(MAX_IMAGES)
+                onImagesSelected(combined)
+            }
+        }
+        pendingUri = null
+    }
+
+    // Lanzador del permiso de cámara — abre la cámara si se concede
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            val photoDir = File(context.cacheDir, "camera_photos").also { it.mkdirs() }
+            val photoFile = File(photoDir, "photo_${System.currentTimeMillis()}.jpg")
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile
+            )
+            pendingUri = uri
+            cameraLauncher.launch(uri)
+        }
+    }
+
+    fun launchCamera() {
+        val alreadyGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (alreadyGranted) {
+            val photoDir = File(context.cacheDir, "camera_photos").also { it.mkdirs() }
+            val photoFile = File(photoDir, "photo_${System.currentTimeMillis()}.jpg")
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile
+            )
+            pendingUri = uri
+            cameraLauncher.launch(uri)
+        } else {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
@@ -69,7 +123,7 @@ fun PhotoPicker(
                     }
                 )
             } else {
-                AddSlot(onClick = { launcher.launch("image/*") })
+                AddSlot(onClick = { launchCamera() })
             }
         }
 
@@ -108,7 +162,7 @@ private fun AddSlot(onClick: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Default.AddAPhoto,
-                contentDescription = "Agregar foto",
+                contentDescription = "Tomar foto",
                 tint = Primary,
                 modifier = Modifier.size(32.dp)
             )

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
@@ -83,6 +84,11 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                     trailingIconTint = Color(0xFFC62828),
                     onTrailingClick = { showLeaveSheet = true }
                 )
+                "VOLUNTEER_WAITING" -> AppTopBar(
+                    title = "Mi Cuadrilla",
+                    subtitle = "Fix My City",
+                    leadingIcon = Icons.Default.HourglassEmpty
+                )
                 else -> AppTopBar(
                     title = "Mi Cuadrilla",
                     subtitle = "Fix My City",
@@ -108,6 +114,32 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                 }
             } else {
                 when (userStatus) {
+                    "VOLUNTEER_WAITING" -> {
+                        InfoCard(
+                            title = "Solicitud aprobada",
+                            message = "Tu solicitud como voluntario ha sido aprobada. Pronto un administrador te asignará a una cuadrilla. Vuelve a revisar esta pantalla en unos momentos.",
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.HourglassEmpty,
+                                    contentDescription = null,
+                                    tint = Primary
+                                )
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = "En espera de asignación",
+                            style = AppTypography.Body.copy(fontWeight = FontWeight.SemiBold),
+                            color = Primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Un administrador te asignará a una cuadrilla próximamente.",
+                            style = AppTypography.BodySmall,
+                            color = TextSecondary
+                        )
+                    }
+
                     "NONE", "PENDING" -> {
                         InfoCard(
                             title = "Información sobre voluntarios:",
@@ -252,7 +284,9 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                                         currentVotes = votes?.first ?: 0,
                                         totalVotes = votes?.second ?: 3,
                                         imageUrls = report.photos.map { it.filePath },
-                                        onClick = { navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}") },
+                                        onClick = {
+                                            navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}")
+                                        },
                                         onAccept = { viewModel.voteReport(report.assignmentId, "ACCEPT") },
                                         onReject = { viewModel.voteReport(report.assignmentId, "REJECT") }
                                     )

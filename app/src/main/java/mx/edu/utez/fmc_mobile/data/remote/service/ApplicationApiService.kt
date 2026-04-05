@@ -17,4 +17,7 @@ interface ApplicationApiService {
 
     @GET("api/applications/pending")
     suspend fun getPendingApplications(): Response<Map<String, Any>>
+
+    @GET("api/applications/my-status")
+    suspend fun getMyApplicationStatus(): Response<Map<String, Any>>
 }

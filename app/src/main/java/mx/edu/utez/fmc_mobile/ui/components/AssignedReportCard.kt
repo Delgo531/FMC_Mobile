@@ -23,19 +23,21 @@ import java.time.temporal.ChronoUnit
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import mx.edu.utez.fmc_mobile.ui.theme.*
 import mx.edu.utez.fmc_mobile.utils.formatApiDate
 
 private fun computeRemainingMinutes(assignedAt: String): Long {
     return try {
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
-            .withZone(java.time.ZoneOffset.UTC)
         val assigned = LocalDateTime.parse(assignedAt, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSSSSS][.SSS]"))
         val deadline = assigned.plusMinutes(30)
-        val now = LocalDateTime.now(java.time.ZoneOffset.UTC)
+        // Use device local time — the backend stores LocalDateTime.now() in server-local time,
+        // so both sides are naive datetimes in the same timezone and are directly comparable.
+        val now = LocalDateTime.now()
         ChronoUnit.MINUTES.between(now, deadline).coerceAtLeast(0)
     } catch (_: Exception) { -1L }
 }
@@ -59,6 +61,7 @@ fun AssignedReportCard(
     modifier: Modifier = Modifier
 ) {
     val isPendingVote = assignmentStatus.equals("PENDING_VOTE", ignoreCase = true)
+    val isAccepted = assignmentStatus.equals("ACCEPTED", ignoreCase = true)
     val remainingMinutes = remember(assignedAt) {
         if (isPendingVote && assignedAt.isNotBlank()) computeRemainingMinutes(assignedAt) else -1L
     }
@@ -157,6 +160,13 @@ fun AssignedReportCard(
             ) {
                 if (imageUrls.isEmpty()) {
                     Text(text = "Sin imágenes", style = AppTypography.BodySmall.copy(color = TextSecondary))
+                } else {
+                    AsyncImage(
+                        model = imageUrls[currentImage],
+                        contentDescription = "Foto del reporte",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
                 if (imageUrls.size > 1) {
                     Icon(
@@ -216,45 +226,49 @@ fun AssignedReportCard(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Progreso de votación", style = AppTypography.Caption.copy(color = TextSecondary))
-                Text(
-                    text = "$currentVotes / $totalVotes Votos",
-                    style = AppTypography.Caption.copy(fontWeight = FontWeight.SemiBold, color = TextSecondary)
-                )
+            if (!isAccepted) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Progreso de votación", style = AppTypography.Caption.copy(color = TextSecondary))
+                    Text(
+                        text = "$currentVotes / $totalVotes Votos",
+                        style = AppTypography.Caption.copy(fontWeight = FontWeight.SemiBold, color = TextSecondary)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (isPendingVote) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onReject,
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, TextSecondary),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Surface, contentColor = TextSecondary),
-                    modifier = Modifier.weight(1f)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(imageVector = Icons.Filled.ThumbDown, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Rechazar", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
-                }
+                    OutlinedButton(
+                        onClick = onReject,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, TextSecondary),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Surface, contentColor = TextSecondary),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(imageVector = Icons.Filled.ThumbDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(text = "Rechazar", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
+                    }
 
-                Button(
-                    onClick = onAccept,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(imageVector = Icons.Filled.ThumbUp, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Aceptar", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
+                    Button(
+                        onClick = onAccept,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(imageVector = Icons.Filled.ThumbUp, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(text = "Aceptar", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
+                    }
                 }
             }
         }

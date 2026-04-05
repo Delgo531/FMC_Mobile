@@ -33,7 +33,6 @@ import mx.edu.utez.fmc_mobile.R
 import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
 import mx.edu.utez.fmc_mobile.ui.components.BottomNavBar
-import mx.edu.utez.fmc_mobile.ui.components.InfoCard
 import mx.edu.utez.fmc_mobile.ui.components.LogoutButton
 import mx.edu.utez.fmc_mobile.ui.components.TxtDisplay
 import androidx.compose.foundation.text.KeyboardOptions
@@ -59,6 +58,7 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = vi
 
     var showDeactivateDialog by remember { mutableStateOf(false) }
     var deactivatePassword by remember { mutableStateOf("") }
+    var showPrivacyDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(logoutState) {
         if (logoutState is LogoutState.Success) {
@@ -172,20 +172,56 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = vi
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            InfoCard(
-                title = "Aviso de Privacidad:",
-                message = "Tu privacidad es nuestra prioridad. No recolectamos datos personales adicionales. Tus reportes son anónimos ante otros ciudadanos.",
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.VerifiedUser,
-                        contentDescription = null,
-                        tint = Primary
-                    )
-                }
-            )
+            TextButton(
+                onClick = { showPrivacyDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.VerifiedUser,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(
+                    text = "Ver Aviso de Privacidad",
+                    style = AppTypography.BodySmall,
+                    color = Primary
+                )
+            }
 
 
         }
+    }
+
+    if (showPrivacyDialog) {
+        AlertDialog(
+            onDismissRequest = { showPrivacyDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.VerifiedUser,
+                    contentDescription = null,
+                    tint = Primary
+                )
+            },
+            title = {
+                Text(
+                    text = "Aviso de Privacidad",
+                    style = AppTypography.Body.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Text(
+                    text = "Tu privacidad es nuestra prioridad. No recolectamos datos personales adicionales a los estrictamente necesarios para el funcionamiento de la aplicación. Tus reportes son anónimos ante otros ciudadanos. La información proporcionada se utiliza únicamente para gestionar incidencias municipales y mejorar los servicios públicos de tu comunidad. No compartimos tus datos con terceros sin tu consentimiento.",
+                    style = AppTypography.BodySmall,
+                    color = TextSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showPrivacyDialog = false }) {
+                    Text("Entendido", color = Primary)
+                }
+            }
+        )
     }
 
     if (showDeactivateDialog) {

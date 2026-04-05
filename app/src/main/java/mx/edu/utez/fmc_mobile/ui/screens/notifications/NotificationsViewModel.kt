@@ -49,7 +49,12 @@ class NotificationsViewModel : ViewModel() {
                     if (data != null) {
                         val json = gson.toJson(data)
                         val type = object : TypeToken<List<NotificationItem>>() {}.type
-                        _notifications.value = gson.fromJson(json, type) ?: emptyList()
+                        val listJson = if (json.trimStart().startsWith("[")) json
+                        else {
+                            val pageMap = gson.fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
+                            gson.toJson(pageMap["content"])
+                        }
+                        _notifications.value = gson.fromJson(listJson, type) ?: emptyList()
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()

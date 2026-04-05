@@ -64,10 +64,7 @@ class ProfileViewModel : ViewModel() {
             _updateState.value = UpdateProfileState.Error("Ingresa un correo válido")
             return
         }
-        if (password.isBlank()) {
-            _updateState.value = UpdateProfileState.Error("La contraseña es obligatoria para confirmar cambios")
-            return
-        }
+
         if (municipality.isBlank()) {
             _updateState.value = UpdateProfileState.Error("Selecciona un municipio")
             return

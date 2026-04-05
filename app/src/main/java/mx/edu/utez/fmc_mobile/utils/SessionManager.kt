@@ -24,7 +24,9 @@ object SessionManager {
     }
 
     fun saveToken(token: String) {
-        prefs.edit().putString(KEY_TOKEN, token).apply()
+        // Reset userId so pendingKey() doesn't reuse a stale ID from a previous account
+        // until saveUserData() is called with the real userId after profile fetch
+        prefs.edit().putString(KEY_TOKEN, token).putLong(KEY_USER_ID, -1L).apply()
         // Decode JWT payload to extract user info
         try {
             val parts = token.split(".")
@@ -58,9 +60,12 @@ object SessionManager {
     fun getRole(): String = prefs.getString(KEY_ROLE, "CITIZEN") ?: "CITIZEN"
     fun isVolunteer(): Boolean = prefs.getBoolean(KEY_IS_VOLUNTEER, false)
 
-    fun hasPendingApplication(): Boolean = prefs.getBoolean(KEY_HAS_PENDING_APPLICATION, false)
+    // Keyed by userId so different accounts on the same device don't share the flag
+    private fun pendingKey(): String = "${KEY_HAS_PENDING_APPLICATION}_${getUserId()}"
+
+    fun hasPendingApplication(): Boolean = prefs.getBoolean(pendingKey(), false)
     fun setPendingApplication(value: Boolean) {
-        prefs.edit().putBoolean(KEY_HAS_PENDING_APPLICATION, value).apply()
+        prefs.edit().putBoolean(pendingKey(), value).apply()
     }
 
     fun isLoggedIn(): Boolean = getToken() != null
