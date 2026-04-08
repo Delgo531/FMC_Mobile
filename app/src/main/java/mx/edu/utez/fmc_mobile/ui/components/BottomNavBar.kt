@@ -44,10 +44,14 @@ fun BottomNavBar(
             NavigationBarItem(
                 selected = currentRoute == item.route,
                 onClick = {
+                    if (currentRoute == item.route) return@NavigationBarItem
                     navController.navigate(item.route) {
-                        popUpTo(Routes.HOME) { saveState = true }
+                        popUpTo(Routes.HOME) {
+                            inclusive = item.route == Routes.HOME
+                            saveState = item.route != Routes.HOME
+                        }
                         launchSingleTop = true
-                        restoreState = true
+                        restoreState = item.route != Routes.HOME
                     }
                 },
                 icon = { Icon(imageVector = item.icon, contentDescription = item.label) },
