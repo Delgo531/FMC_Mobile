@@ -64,6 +64,7 @@ import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.Surface
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 import mx.edu.utez.fmc_mobile.utils.LocationHelper
+import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 @Composable
 fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel = viewModel()) {
@@ -176,8 +177,13 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 value = address,
                 onValueChange = { newValue ->
                     address = newValue
-                    // Actualiza la advertencia en tiempo real si el usuario escribe manualmente
-                    addressWarning = newValue.isNotBlank() && !LocationHelper.isInMorelos(newValue)
+                    // Advierte si el municipio de la dirección no coincide con el de registro
+                    val userMunicipality = SessionManager.getMunicipality()
+                    val extracted = LocationHelper.extractMunicipality(newValue)
+                    addressWarning = newValue.isNotBlank() && (
+                        (extracted != null && extracted != userMunicipality) ||
+                        (extracted == null && !LocationHelper.isInMorelos(newValue))
+                    )
                     // Si empieza a editar manualmente, descarta el estado del GPS
                     if (locationState is LocationFetchState.Success) {
                         viewModel.resetLocationState()
@@ -274,7 +280,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = "La dirección debe incluir el municipio y estado (Morelos)",
+                        text = "La dirección debe estar en tu municipio: ${SessionManager.getMunicipality()}",
                         style = AppTypography.Caption,
                         color = Color(0xFFF59E0B)
                     )

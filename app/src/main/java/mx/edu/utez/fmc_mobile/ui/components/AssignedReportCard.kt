@@ -66,19 +66,27 @@ fun AssignedReportCard(
         if (isPendingVote && assignedAt.isNotBlank()) computeRemainingMinutes(assignedAt) else -1L
     }
     val (badgeBackground, badgeTextColor) = when (status.uppercase()) {
-        "COMPLETED"  -> StatusCompleted  to CompletedText
-        "REGISTERED" -> StatusPending    to PendingText
-        "IN_PROCESS" -> StatusInProgress to InProgressText
-        "REJECTED"   -> FondoError       to Color(0xFFC62828)
-        else         -> Color(0xFFEEEEEE) to TextSecondary
+        "REGISTERED"   -> StatusPending           to PendingText
+        "PENDING_VOTE" -> StatusPending           to PendingText
+        "ACCEPTED"     -> Color(0xFFD1FAE5)       to Color(0xFF065F46)
+        "ON_THE_WAY"   -> StatusInProgress        to InProgressText
+        "IN_PROGRESS"  -> StatusInProgress        to InProgressText
+        "CLOSED"       -> Color(0xFFD1FAE5)       to Color(0xFF065F46)
+        "REJECTED"     -> FondoError              to Color(0xFFC62828)
+        "COMPLETED"    -> StatusCompleted         to Color(0xFF6B21A8)
+        else           -> Color(0xFFEEEEEE)       to TextSecondary
     }
 
     val statusLabel = when (status.uppercase()) {
-        "COMPLETED"  -> "COMPLETADO"
-        "REGISTERED" -> "REGISTRADO"
-        "IN_PROCESS" -> "EN PROCESO"
-        "REJECTED"   -> "RECHAZADO"
-        else         -> status
+        "REGISTERED"   -> "REGISTRADO"
+        "PENDING_VOTE" -> "EN VOTACIÓN"
+        "ACCEPTED"     -> "ACEPTADO"
+        "ON_THE_WAY"   -> "EN CAMINO"
+        "IN_PROGRESS"  -> "EN PROCESO"
+        "CLOSED"       -> "CERRADO"
+        "REJECTED"     -> "RECHAZADO"
+        "COMPLETED"    -> "COMPLETADO"
+        else           -> status
     }
 
     var currentImage by remember { mutableIntStateOf(0) }

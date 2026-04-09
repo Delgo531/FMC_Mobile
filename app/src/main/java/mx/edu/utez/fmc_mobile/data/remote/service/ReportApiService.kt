@@ -15,12 +15,12 @@ interface ReportApiService {
     @GET("api/reports/{id}")
     suspend fun getReportById(@Path("id") id: Long): Response<Map<String, Any>>
 
-    @GET("api/reports")
+    @GET("api/reports?sort=createdAt,desc")
     suspend fun getAllReports(): Response<Map<String, Any>>
 
     @GET("api/reports/my-reports")
     suspend fun getMyReports(): Response<Map<String, Any>>
 
-    @GET("api/reports/municipality/{municipality}")
+    @GET("api/reports/municipality/{municipality}?sort=createdAt,desc")
     suspend fun getReportsByMunicipality(@Path("municipality") municipality: String): Response<Map<String, Any>>
 }

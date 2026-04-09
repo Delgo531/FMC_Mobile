@@ -1,6 +1,8 @@
 package mx.edu.utez.fmc_mobile.data.remote.service
 
+import mx.edu.utez.fmc_mobile.data.remote.dto.request.LeaderApplicationRequest
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 
@@ -10,7 +12,7 @@ interface ApplicationApiService {
     suspend fun applyAsVolunteer(): Response<Map<String, Any>>
 
     @POST("api/applications/leader")
-    suspend fun applyAsLeader(): Response<Map<String, Any>>
+    suspend fun applyAsLeader(@Body request: LeaderApplicationRequest): Response<Map<String, Any>>
 
     @GET("api/applications")
     suspend fun getAllApplications(): Response<Map<String, Any>>

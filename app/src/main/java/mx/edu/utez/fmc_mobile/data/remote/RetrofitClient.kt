@@ -17,16 +17,20 @@ object  RetrofitClient {
     private const val BASE_URL = "https://apifmc-production.up.railway.app/"
 
     private val authInterceptor = Interceptor { chain ->
-        val original = chain.request()
         val token = SessionManager.getToken()
         val request = if (token != null) {
-            original.newBuilder()
+            chain.request().newBuilder()
                 .header("Authorization", "Bearer $token")
                 .build()
         } else {
-            original
+            chain.request()
         }
-        chain.proceed(request)
+        val response = chain.proceed(request)
+        // Si el token expiró (401) y había sesión activa, cerrar sesión automáticamente
+        if (response.code == 401 && token != null) {
+            SessionManager.onSessionExpired()
+        }
+        response
     }
 
     private val client = OkHttpClient.Builder()

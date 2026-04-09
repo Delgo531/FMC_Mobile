@@ -255,10 +255,12 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                         val filteredReports = if (selectedTab == 0) {
                             assignedReports.filter {
                                 it.assignmentStatus != "COMPLETED" && it.assignmentStatus != "REJECTED"
+                                    && it.reportStatus != "CLOSED"
                             }
                         } else {
                             assignedReports.filter {
                                 it.assignmentStatus == "COMPLETED" || it.assignmentStatus == "REJECTED"
+                                    || it.reportStatus == "CLOSED"
                             }
                         }
 

@@ -43,19 +43,27 @@ fun ReportCard(
     modifier: Modifier = Modifier
 ) {
     val (badgeBackground, badgeTextColor) = when (status.uppercase()) {
-        "COMPLETED"  -> StatusCompleted  to CompletedText
-        "REGISTERED" -> StatusPending    to PendingText
-        "IN_PROCESS" -> StatusInProgress to InProgressText
-        "REJECTED"   -> FondoError       to Color(0xFFC62828)
-        else         -> Color(0xFFEEEEEE) to TextSecondary
+        "REGISTERED"   -> StatusPending           to PendingText
+        "PENDING_VOTE" -> StatusPending           to PendingText
+        "ACCEPTED"     -> Color(0xFFD1FAE5)       to Color(0xFF065F46)
+        "ON_THE_WAY"   -> StatusInProgress        to InProgressText
+        "IN_PROGRESS"  -> StatusInProgress        to InProgressText
+        "CLOSED"       -> Color(0xFFD1FAE5)       to Color(0xFF065F46)
+        "REJECTED"     -> FondoError              to Color(0xFFC62828)
+        "COMPLETED"    -> StatusCompleted         to Color(0xFF6B21A8)
+        else           -> Color(0xFFEEEEEE)       to TextSecondary
     }
 
     val statusLabel = when (status.uppercase()) {
-        "COMPLETED"  -> "COMPLETADO"
-        "REGISTERED" -> "REGISTRADO"
-        "IN_PROCESS" -> "EN PROCESO"
-        "REJECTED"   -> "RECHAZADO"
-        else         -> status
+        "REGISTERED"   -> "Registrado"
+        "PENDING_VOTE" -> "En Votación"
+        "ACCEPTED"     -> "Aceptado"
+        "ON_THE_WAY"   -> "En Camino"
+        "IN_PROGRESS"  -> "En Proceso"
+        "CLOSED"       -> "Cerrado"
+        "REJECTED"     -> "Rechazado"
+        "COMPLETED"    -> "Completado"
+        else           -> status
     }
 
     var currentImage by remember { mutableIntStateOf(0) }

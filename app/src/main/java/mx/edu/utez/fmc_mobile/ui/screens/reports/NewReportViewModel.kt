@@ -25,9 +25,10 @@ class NewReportViewModel : ViewModel() {
     private val _locationState = MutableStateFlow<LocationFetchState>(LocationFetchState.Idle)
     val locationState: StateFlow<LocationFetchState> = _locationState
 
-    // Coordenadas obtenidas por GPS — se usan al enviar el reporte
+    // Coordenadas y municipio obtenidos por GPS — se usan al enviar el reporte
     private var gpsLatitude: BigDecimal = BigDecimal.ZERO
     private var gpsLongitude: BigDecimal = BigDecimal.ZERO
+    private var resolvedMunicipality: String = ""
 
     /** Obtiene la ubicación GPS y convierte a dirección textual. */
     fun fetchLocation(context: Context) {
@@ -37,6 +38,7 @@ class NewReportViewModel : ViewModel() {
                 is LocationResult.Success -> {
                     gpsLatitude = BigDecimal.valueOf(result.latitude)
                     gpsLongitude = BigDecimal.valueOf(result.longitude)
+                    resolvedMunicipality = result.municipality
                     _locationState.value = LocationFetchState.Success(result.address)
                 }
                 is LocationResult.Error -> {
@@ -48,6 +50,7 @@ class NewReportViewModel : ViewModel() {
 
     fun resetLocationState() {
         _locationState.value = LocationFetchState.Idle
+        resolvedMunicipality = ""
     }
 
     fun createReport(
@@ -73,11 +76,31 @@ class NewReportViewModel : ViewModel() {
             _createState.value = CreateReportState.Error("Ingresa una dirección más completa (calle, número y colonia)")
             return
         }
-        if (!LocationHelper.isInMorelos(address)) {
+        val userMunicipality = SessionManager.getMunicipality()
+
+        // Validar que la dirección GPS corresponda al municipio del usuario
+        if (resolvedMunicipality.isNotBlank() && resolvedMunicipality != userMunicipality) {
             _createState.value = CreateReportState.Error(
-                "La dirección debe corresponder a un municipio de Morelos"
+                "Tu ubicación GPS está en $resolvedMunicipality. Solo puedes reportar en tu municipio: $userMunicipality"
             )
             return
+        }
+
+        // Validar que la dirección escrita manualmente corresponda al municipio del usuario
+        if (resolvedMunicipality.isBlank()) {
+            val extracted = LocationHelper.extractMunicipality(address)
+            if (extracted != null && extracted != userMunicipality) {
+                _createState.value = CreateReportState.Error(
+                    "La dirección está en $extracted. Solo puedes reportar en tu municipio: $userMunicipality"
+                )
+                return
+            }
+            if (!LocationHelper.isInMorelos(address)) {
+                _createState.value = CreateReportState.Error(
+                    "La dirección debe estar en tu municipio de registro: $userMunicipality"
+                )
+                return
+            }
         }
 
         viewModelScope.launch {
@@ -96,7 +119,8 @@ class NewReportViewModel : ViewModel() {
 
                 _createState.value = CreateReportState.Loading("Enviando reporte...")
 
-                val municipality = SessionManager.getMunicipality()
+                // Siempre se envía el municipio de registro del usuario (regla de negocio)
+                val municipality = userMunicipality
 
                 val request = CreateReportRequest(
                     title = title,
@@ -128,6 +152,9 @@ class NewReportViewModel : ViewModel() {
 
     fun resetState() {
         _createState.value = CreateReportState.Idle
+        resolvedMunicipality = ""
+        gpsLatitude = BigDecimal.ZERO
+        gpsLongitude = BigDecimal.ZERO
     }
 }
 

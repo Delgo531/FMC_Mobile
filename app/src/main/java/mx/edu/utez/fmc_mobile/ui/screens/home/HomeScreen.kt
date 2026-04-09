@@ -65,11 +65,16 @@ fun Home(navController: NavController, viewModel: HomeViewModel = viewModel()) {
         }
     }
 
-    val filteredReports = if (busqueda.isBlank()) reports else reports.filter {
-        it.title.contains(busqueda, ignoreCase = true) ||
-        it.description.contains(busqueda, ignoreCase = true) ||
-        it.address.contains(busqueda, ignoreCase = true)
-    }
+    val filteredReports = reports
+        .filter { it.status.uppercase() != "CLOSED" }
+        .let { visible ->
+            if (busqueda.isBlank()) visible
+            else visible.filter {
+                it.title.contains(busqueda, ignoreCase = true) ||
+                it.description.contains(busqueda, ignoreCase = true) ||
+                it.address.contains(busqueda, ignoreCase = true)
+            }
+        }
 
     Scaffold(
         topBar = { AppTopBar(title = "Reportes Morelos", subtitle = "Fix My City", leadingIcon = Icons.Default.AddLocation, trailingIcon = Icons.Default.AddCircle, onTrailingClick = { navController.navigate(Routes.CREATEREPORT) }) },
