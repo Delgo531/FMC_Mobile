@@ -17,6 +17,7 @@ object SessionManager {
     private const val KEY_ROLE = "role"
     private const val KEY_IS_VOLUNTEER = "is_volunteer"
     private const val KEY_HAS_PENDING_APPLICATION = "has_pending_application"
+    private const val KEY_SHOWN_NOTIFICATION_IDS   = "shown_notification_ids"
 
     private lateinit var prefs: SharedPreferences
 
@@ -70,6 +71,18 @@ object SessionManager {
     }
 
     fun isLoggedIn(): Boolean = getToken() != null
+
+    // Keyed by userId so different accounts don't share shown-notification state
+    private fun shownKey(): String = "${KEY_SHOWN_NOTIFICATION_IDS}_${getUserId()}"
+
+    fun isNotificationShown(id: Long): Boolean =
+        prefs.getStringSet(shownKey(), emptySet())?.contains(id.toString()) == true
+
+    fun markNotificationShown(id: Long) {
+        val current = prefs.getStringSet(shownKey(), emptySet())?.toMutableSet() ?: mutableSetOf()
+        current.add(id.toString())
+        prefs.edit().putStringSet(shownKey(), current).apply()
+    }
 
     fun clearSession() {
         prefs.edit().clear().apply()

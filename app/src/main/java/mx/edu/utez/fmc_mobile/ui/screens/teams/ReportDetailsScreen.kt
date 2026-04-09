@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Schedule
@@ -44,11 +45,14 @@ private data class StatusDisplayInfo(
 )
 
 private fun statusDisplayInfo(status: String): StatusDisplayInfo = when (status) {
-    "ACCEPTED"    -> StatusDisplayInfo("Pendiente",   Icons.Filled.Schedule,      Color(0xFFF59E0B), "El reporte ha sido aceptado por la cuadrilla")
-    "ON_THE_WAY"  -> StatusDisplayInfo("En Camino",   Icons.Filled.DirectionsCar, Color(0xFF3B82F6), "La cuadrilla se dirige al lugar del reporte")
-    "IN_PROGRESS" -> StatusDisplayInfo("En Progreso", Icons.Filled.Build,          Color(0xFF8B5CF6), "La cuadrilla está trabajando en el reporte")
-    "CLOSED"      -> StatusDisplayInfo("Cerrado",     Icons.Filled.CheckCircle,   Color(0xFF10B981), "El reporte ha sido cerrado exitosamente")
-    else          -> StatusDisplayInfo("Rechazado",   Icons.Filled.Close,         Color(0xFFEF4444), "El reporte no pudo ser atendido")
+    "REGISTERED",
+    "PENDING_VOTE" -> StatusDisplayInfo("En Votación",  Icons.Filled.HourglassEmpty, Color(0xFFF59E0B), "La cuadrilla está votando para aceptar este reporte")
+    "ACCEPTED"     -> StatusDisplayInfo("Aceptado",     Icons.Filled.Schedule,       Color(0xFFF59E0B), "El reporte ha sido aceptado por la cuadrilla")
+    "ON_THE_WAY"   -> StatusDisplayInfo("En Camino",    Icons.Filled.DirectionsCar,  Color(0xFF3B82F6), "La cuadrilla se dirige al lugar del reporte")
+    "IN_PROGRESS"  -> StatusDisplayInfo("En Progreso",  Icons.Filled.Build,          Color(0xFF8B5CF6), "La cuadrilla está trabajando en el reporte")
+    "CLOSED"       -> StatusDisplayInfo("Cerrado",      Icons.Filled.CheckCircle,    Color(0xFF10B981), "El reporte ha sido cerrado exitosamente")
+    "REJECTED"     -> StatusDisplayInfo("Rechazado",    Icons.Filled.Close,          Color(0xFFEF4444), "El reporte no pudo ser atendido")
+    else           -> StatusDisplayInfo("Desconocido",  Icons.Filled.Info,           Color(0xFF9CA3AF), "Estado no reconocido")
 }
 
 // Fixed linear progression — no going back, no skipping
@@ -71,6 +75,7 @@ fun ReportDetailsScreen(
     navController: NavController,
     assignmentId: Long = -1L,
     reportStatus: String = "ACCEPTED",
+    assignmentStatus: String = "ACCEPTED",
     userRole: String = "MEMBER",
     viewModel: ReportDetailsViewModel = viewModel()
 ) {
@@ -82,12 +87,17 @@ fun ReportDetailsScreen(
     var comments by remember { mutableStateOf("") }
     var showSuccessSheet by remember { mutableStateOf(false) }
 
-    val isLeader   = userRole == "LEADER"
-    val isClosing  = reportStatus == "IN_PROGRESS"
-    val isFinished = reportStatus == "CLOSED" || reportStatus == "REJECTED"
+    val isLeader    = userRole == "LEADER"
+    // Usar assignmentStatus para determinar si está en votación
+    val isVoting    = assignmentStatus.equals("PENDING_VOTE", ignoreCase = true)
+    val isClosing   = reportStatus == "IN_PROGRESS" && !isVoting
+    val isFinished  = reportStatus == "CLOSED" || reportStatus == "REJECTED"
 
-    val currentInfo = statusDisplayInfo(reportStatus)
-    val nextStatus  = nextStatusOf(reportStatus)
+    // En votación mostrar siempre el banner de votación, no el del reportStatus
+    val displayStatus = if (isVoting) "PENDING_VOTE" else reportStatus
+
+    val currentInfo = statusDisplayInfo(displayStatus)
+    val nextStatus  = if (isVoting) null else nextStatusOf(reportStatus)
     val nextInfo    = when {
         nextStatus != null -> statusDisplayInfo(nextStatus)
         isClosing          -> statusDisplayInfo("CLOSED")
@@ -170,8 +180,35 @@ fun ReportDetailsScreen(
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Card de votación en curso — nadie puede actuar hasta que se resuelva
+                if (isVoting) {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.HourglassEmpty,
+                                contentDescription = null,
+                                tint = Color(0xFFF59E0B),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Text(
+                                text = "Este reporte está en proceso de votación. Una vez que la cuadrilla complete la votación podrás ver las acciones disponibles.",
+                                style = AppTypography.BodySmall,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+                }
+
                 // Member notice (read-only)
-                if (!isLeader && !isFinished) {
+                if (!isLeader && !isFinished && !isVoting) {
                     Card(
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),

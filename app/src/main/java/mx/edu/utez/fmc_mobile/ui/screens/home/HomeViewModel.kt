@@ -1,6 +1,7 @@
 package mx.edu.utez.fmc_mobile.ui.screens.home
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -9,9 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import mx.edu.utez.fmc_mobile.data.remote.dto.response.ReportResponse
 import mx.edu.utez.fmc_mobile.data.repository.ReportRepository
+import mx.edu.utez.fmc_mobile.utils.NotificationHelper
 import mx.edu.utez.fmc_mobile.utils.SessionManager
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = ReportRepository()
     private val gson = Gson()
@@ -70,6 +72,11 @@ class HomeViewModel : ViewModel() {
             } finally {
                 _isLoading.value = false
             }
+
+            // Verificar y mostrar notificaciones nuevas en la barra del sistema.
+            // El historial se persiste en SharedPreferences: si el usuario borra
+            // la notificación de su panel, no vuelve a aparecer.
+            NotificationHelper.pollAndShowNew(getApplication())
         }
     }
 }

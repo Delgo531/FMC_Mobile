@@ -96,17 +96,25 @@ fun AppNavigation() {
         }
 
         composable(
-            route = "${Routes.REPORTDETAILS}/{assignmentId}/{reportStatus}/{userRole}",
+            route = "${Routes.REPORTDETAILS}/{assignmentId}/{reportStatus}/{assignmentStatus}/{userRole}",
             arguments = listOf(
-                navArgument("assignmentId") { type = NavType.LongType },
-                navArgument("reportStatus") { type = NavType.StringType },
-                navArgument("userRole") { type = NavType.StringType }
+                navArgument("assignmentId")     { type = NavType.LongType },
+                navArgument("reportStatus")     { type = NavType.StringType },
+                navArgument("assignmentStatus") { type = NavType.StringType },
+                navArgument("userRole")         { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val assignmentId = backStackEntry.arguments?.getLong("assignmentId") ?: -1L
-            val reportStatus = backStackEntry.arguments?.getString("reportStatus") ?: "ACCEPTED"
-            val userRole = backStackEntry.arguments?.getString("userRole") ?: "MEMBER"
-            ReportDetailsScreen(navController, assignmentId = assignmentId, reportStatus = reportStatus, userRole = userRole)
+            val assignmentId     = backStackEntry.arguments?.getLong("assignmentId") ?: -1L
+            val reportStatus     = backStackEntry.arguments?.getString("reportStatus")     ?: "ACCEPTED"
+            val assignmentStatus = backStackEntry.arguments?.getString("assignmentStatus") ?: "ACCEPTED"
+            val userRole         = backStackEntry.arguments?.getString("userRole")         ?: "MEMBER"
+            ReportDetailsScreen(
+                navController,
+                assignmentId     = assignmentId,
+                reportStatus     = reportStatus,
+                assignmentStatus = assignmentStatus,
+                userRole         = userRole
+            )
         }
 
         composable(Routes.NOTIFICATIONS) {

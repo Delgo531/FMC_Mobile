@@ -264,15 +264,20 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Whitelist explícita: solo estados activos en Pendientes.
+                        // Reportes con tiempo agotado vuelven a REGISTERED con un
+                        // assignmentStatus que no es PENDING_VOTE ni ACCEPTED →
+                        // quedan fuera de ambas pestañas y desaparecen de la UI.
                         val filteredReports = if (selectedTab == 0) {
                             assignedReports.filter {
-                                it.assignmentStatus != "COMPLETED" && it.assignmentStatus != "REJECTED"
-                                    && it.reportStatus != "CLOSED"
+                                it.assignmentStatus.equals("PENDING_VOTE", ignoreCase = true) ||
+                                it.assignmentStatus.equals("ACCEPTED", ignoreCase = true)
                             }
                         } else {
                             assignedReports.filter {
-                                it.assignmentStatus == "COMPLETED" || it.assignmentStatus == "REJECTED"
-                                    || it.reportStatus == "CLOSED"
+                                it.assignmentStatus.equals("COMPLETED", ignoreCase = true) ||
+                                it.assignmentStatus.equals("REJECTED", ignoreCase = true) ||
+                                it.reportStatus.equals("CLOSED", ignoreCase = true)
                             }
                         }
 
@@ -300,7 +305,7 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                                         leaderAccepted = votes?.leaderAccepted ?: false,
                                         imageUrls = report.photos.map { it.filePath },
                                         onClick = {
-                                            navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}/${report.reportStatus}/${userRole}")
+                                            navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}/${report.reportStatus}/${report.assignmentStatus}/${userRole}")
                                         },
                                         onAccept = { viewModel.voteReport(report.assignmentId, "ACCEPT") },
                                         onReject = { viewModel.voteReport(report.assignmentId, "REJECT") }

@@ -10,6 +10,17 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import mx.edu.utez.fmc_mobile.data.repository.NotificationRepository
+
+// Debe ser top-level para que Gson pueda usar reflection correctamente
+private data class RawNotification(
+    val id: Long,
+    val type: String,
+    val message: String,
+    val read: Boolean
+)
 
 object NotificationHelper {
 
@@ -38,15 +49,53 @@ object NotificationHelper {
             CHANNEL_NAME,
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply { description = "Notificaciones de Fix My City" }
-
         context.getSystemService(NotificationManager::class.java)
             .createNotificationChannel(channel)
     }
 
-    /** Muestra una notificación del sistema si el permiso está concedido. */
-    fun show(context: Context, notificationId: Long, title: String, body: String) {
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED
+    /**
+     * Consulta la API y muestra en la barra del sistema las notificaciones
+     * no leídas que no hayan sido mostradas antes.
+     * El historial se persiste en SharedPreferences: borrar la notificación
+     * del panel del sistema NO hace que vuelva a aparecer.
+     */
+    suspend fun pollAndShowNew(context: Context) {
+        if (!SessionManager.isLoggedIn()) return
+        try {
+            val response = NotificationRepository().getMyNotifications()
+            if (!response.isSuccessful) return
+            val body = response.body() ?: return
+            val data = body["data"] ?: return
+
+            val gson = Gson()
+            val json = gson.toJson(data)
+            val listJson = if (json.trimStart().startsWith("[")) json
+            else {
+                val map = gson.fromJson<Map<String, Any>>(
+                    json, object : TypeToken<Map<String, Any>>() {}.type
+                )
+                gson.toJson(map["content"])
+            }
+
+            val rawType = object : TypeToken<List<RawNotification>>() {}.type
+            val items: List<RawNotification> = gson.fromJson(listJson, rawType) ?: return
+
+            items
+                .filter { !it.read && !SessionManager.isNotificationShown(it.id) }
+                .forEach { item ->
+                    // Marcar ANTES de publicar para evitar duplicados si se llama
+                    // desde Home y Cuadrillas al mismo tiempo
+                    SessionManager.markNotificationShown(item.id)
+                    showRaw(context, item.id, typeToSpanish(item.type), item.message)
+                }
+        } catch (_: Exception) { }
+    }
+
+    /** Publica la notificación nativa sin comprobación de historial. */
+    private fun showRaw(context: Context, notificationId: Long, title: String, body: String) {
+        if (ActivityCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
         ) return
 
         val intent = context.packageManager

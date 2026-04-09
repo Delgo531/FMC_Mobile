@@ -1,8 +1,9 @@
 package mx.edu.utez.fmc_mobile.ui.screens.teams
 
+import android.app.Application
 import android.content.Context
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -18,9 +19,10 @@ import mx.edu.utez.fmc_mobile.data.repository.ApplicationRepository
 import mx.edu.utez.fmc_mobile.data.repository.ReportAssignmentRepository
 import mx.edu.utez.fmc_mobile.data.repository.SquadRepository
 import mx.edu.utez.fmc_mobile.utils.CloudinaryHelper
+import mx.edu.utez.fmc_mobile.utils.NotificationHelper
 import mx.edu.utez.fmc_mobile.utils.SessionManager
 
-class TeamsViewModel : ViewModel() {
+class TeamsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val squadRepository = SquadRepository()
     private val applicationRepository = ApplicationRepository()
@@ -168,6 +170,7 @@ class TeamsViewModel : ViewModel() {
                 } finally {
                     _isLoading.value = false
                 }
+                NotificationHelper.pollAndShowNew(getApplication())
             }
         } else {
             // CITIZEN users: re-check pending status from server on resume
@@ -183,6 +186,7 @@ class TeamsViewModel : ViewModel() {
                         _userStatus.value = if (hasPending) "PENDING" else "NONE"
                     }
                 } catch (_: Exception) { }
+                NotificationHelper.pollAndShowNew(getApplication())
             }
         }
     }
