@@ -12,6 +12,9 @@ import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
@@ -54,6 +57,7 @@ fun AssignedReportCard(
     description: String,
     currentVotes: Int,
     totalVotes: Int,
+    leaderAccepted: Boolean = false,
     imageUrls: List<String> = emptyList(),
     onClick: () -> Unit = {},
     onAccept: () -> Unit,
@@ -234,15 +238,71 @@ fun AssignedReportCard(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            if (!isAccepted) {
+            if (isPendingVote) {
+                val volunteerVotes = (if (leaderAccepted) currentVotes - 1 else currentVotes).coerceAtLeast(0)
+
+                // ── Voto del Líder ───────────────────────────────────
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "Progreso de votación", style = AppTypography.Caption.copy(color = TextSecondary))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Filled.AutoAwesome,
+                            contentDescription = null,
+                            tint = if (leaderAccepted) Color(0xFFF59E0B) else TextSecondary,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Voto del Líder",
+                            style = AppTypography.Caption.copy(color = TextSecondary)
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (leaderAccepted) {
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF059669),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                        }
+                        Text(
+                            text = if (leaderAccepted) "Aprobado" else "Pendiente",
+                            style = AppTypography.Caption.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (leaderAccepted) Color(0xFF059669) else Color(0xFFF59E0B)
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // ── Votos de Voluntarios ──────────────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Filled.Group,
+                            contentDescription = null,
+                            tint = TextSecondary,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Votos de voluntarios",
+                            style = AppTypography.Caption.copy(color = TextSecondary)
+                        )
+                    }
                     Text(
-                        text = "$currentVotes / $totalVotes Votos",
+                        text = "$volunteerVotes / 2",
                         style = AppTypography.Caption.copy(fontWeight = FontWeight.SemiBold, color = TextSecondary)
                     )
                 }

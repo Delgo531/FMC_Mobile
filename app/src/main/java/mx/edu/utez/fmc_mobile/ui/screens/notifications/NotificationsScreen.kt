@@ -35,6 +35,7 @@ import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
 import mx.edu.utez.fmc_mobile.ui.components.BottomNavBar
 import mx.edu.utez.fmc_mobile.ui.components.NotificationCard
+import mx.edu.utez.fmc_mobile.utils.NotificationHelper
 import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 
@@ -105,7 +106,7 @@ fun NotificationsScreen(navController: NavController, viewModel: NotificationsVi
                     ) {
                         items(notifications) { notification ->
                             NotificationCard(
-                                type = notification.type.replace("_", " "),
+                                type = NotificationHelper.typeToSpanish(notification.type),
                                 message = notification.message,
                                 createdAt = notification.createdAt,
                                 read = notification.read,

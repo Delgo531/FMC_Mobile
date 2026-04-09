@@ -46,9 +46,9 @@ class TeamsViewModel : ViewModel() {
     private val _actionSuccess = MutableStateFlow<String?>(null)
     val actionSuccess: StateFlow<String?> = _actionSuccess
 
-    // Key: assignmentId, Value: Pair(acceptVotes, totalNeeded)
-    private val _voteStatusMap = MutableStateFlow<Map<Long, Pair<Int, Int>>>(emptyMap())
-    val voteStatusMap: StateFlow<Map<Long, Pair<Int, Int>>> = _voteStatusMap
+    // Key: assignmentId
+    private val _voteStatusMap = MutableStateFlow<Map<Long, VoteStatus>>(emptyMap())
+    val voteStatusMap: StateFlow<Map<Long, VoteStatus>> = _voteStatusMap
 
     init {
         loadUserStatus()
@@ -265,8 +265,9 @@ class TeamsViewModel : ViewModel() {
                                 ?: data?.get("accepts")
                                 ?: data?.get("approveCount")
                             val accept = (rawAccept as? Number)?.toInt() ?: 0
+                            val leaderAccepted = data?.get("leaderAccepted") as? Boolean ?: false
                             _voteStatusMap.value = _voteStatusMap.value.toMutableMap().apply {
-                                put(assignmentId, Pair(accept, 3))
+                                put(assignmentId, VoteStatus(accept, leaderAccepted))
                             }
                         }
                     } catch (_: Exception) { }
@@ -294,22 +295,20 @@ class TeamsViewModel : ViewModel() {
         val pendingVote = assignments.filter {
             it.assignmentStatus.equals("PENDING_VOTE", ignoreCase = true)
         }
-        val map = mutableMapOf<Long, Pair<Int, Int>>()
+        val map = mutableMapOf<Long, VoteStatus>()
         for (assignment in pendingVote) {
             try {
                 val response = assignmentRepository.getVoteStatus(assignment.assignmentId)
                 if (response.isSuccessful) {
                     val body = response.body()
                     val data = body?.get("data") as? Map<*, *>
-                    // Gson deserializes all JSON numbers as Double in Map<String, Any>,
-                    // so cast to Number first, then convert to Int.
                     val rawAccept = data?.get("acceptVotes")
                         ?: data?.get("acceptCount")
                         ?: data?.get("accepts")
                         ?: data?.get("approveCount")
                     val accept = (rawAccept as? Number)?.toInt() ?: 0
-                    // DFR: need leader + 2 members = 3 of 5
-                    map[assignment.assignmentId] = Pair(accept, 3)
+                    val leaderAccepted = data?.get("leaderAccepted") as? Boolean ?: false
+                    map[assignment.assignmentId] = VoteStatus(accept, leaderAccepted)
                 }
             } catch (_: Exception) { }
         }
@@ -351,3 +350,6 @@ class TeamsViewModel : ViewModel() {
         _actionSuccess.value = null
     }
 }
+
+/** Estado de votación de un assignment: votos totales de aceptación y si el líder ya votó */
+data class VoteStatus(val acceptVotes: Int, val leaderAccepted: Boolean)

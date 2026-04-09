@@ -14,10 +14,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.AddLocation
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +46,7 @@ import mx.edu.utez.fmc_mobile.ui.components.SimpleLabel
 import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Home(navController: NavController, viewModel: HomeViewModel = viewModel()) {
 
@@ -51,6 +55,10 @@ fun Home(navController: NavController, viewModel: HomeViewModel = viewModel()) {
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val municipality by viewModel.municipality.collectAsState()
+
+    // true solo durante pull-to-refresh; false en carga inicial → preserva el spinner original
+    var isRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(isLoading) { if (!isLoading) isRefreshing = false }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -80,60 +88,68 @@ fun Home(navController: NavController, viewModel: HomeViewModel = viewModel()) {
         topBar = { AppTopBar(title = "Reportes Morelos", subtitle = "Fix My City", leadingIcon = Icons.Default.AddLocation, trailingIcon = Icons.Default.AddCircle, onTrailingClick = { navController.navigate(Routes.CREATEREPORT) }) },
         bottomBar = { BottomNavBar(navController = navController) }
     ) { paddingValues ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { isRefreshing = true; viewModel.loadReports() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(20.dp))
 
-            Spacer(modifier = Modifier.height(20.dp))
+                SearchBar(busqueda, onValueChange = { busqueda = it })
 
-            SearchBar(busqueda, onValueChange = { busqueda = it })
+                Spacer(modifier = Modifier.height(20.dp))
 
-            Spacer(modifier = Modifier.height(20.dp))
+                SimpleLabel(if (municipality.isNotBlank()) municipality else "Todos los municipios", modifier = Modifier)
 
-            SimpleLabel(if (municipality.isNotBlank()) municipality else "Todos los municipios", modifier = Modifier)
+                Spacer(modifier = Modifier.height(22.dp))
 
-            Spacer(modifier = Modifier.height(22.dp))
-
-            when {
-                isLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                when {
+                    // Spinner de pantalla completa solo en carga inicial (igual que antes)
+                    isLoading && !isRefreshing -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
                     }
-                }
-                errorMessage != null -> {
-                    Text(
-                        text = errorMessage ?: "",
-                        color = TextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                filteredReports.isEmpty() -> {
-                    Text(
-                        text = "No hay reportes disponibles",
-                        color = TextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                else -> {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(filteredReports) { report ->
-                            ReportCard(
-                                username = report.citizenUsername,
-                                createdAt = report.createdAt,
-                                status = report.status,
-                                title = report.title,
-                                address = report.address,
-                                description = report.description,
-                                imageUrls = report.photos.map { it.filePath }
-                            )
+                    errorMessage != null -> {
+                        Text(
+                            text = errorMessage ?: "",
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    filteredReports.isEmpty() -> {
+                        Text(
+                            text = "No hay reportes disponibles",
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(filteredReports) { report ->
+                                ReportCard(
+                                    username = report.citizenUsername,
+                                    createdAt = report.createdAt,
+                                    status = report.status,
+                                    title = report.title,
+                                    address = report.address,
+                                    description = report.description,
+                                    imageUrls = report.photos.map { it.filePath }
+                                )
+                            }
+                            item { Spacer(modifier = Modifier.height(16.dp)) }
                         }
                     }
                 }

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import mx.edu.utez.fmc_mobile.ui.components.*
 import mx.edu.utez.fmc_mobile.ui.screens.teams.TeamsViewModel
 import mx.edu.utez.fmc_mobile.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewModel()) {
 
@@ -52,6 +54,10 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
     var showLeaderSheet by remember { mutableStateOf(false) }
     var leavePassword by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(0) }
+
+    // true solo durante pull-to-refresh; false en carga inicial → preserva el spinner original
+    var isRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(isLoading) { if (!isLoading) isRefreshing = false }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -99,16 +105,22 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
         },
         bottomBar = { BottomNavBar(navController = navController) }
     ) { paddingValues ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { isRefreshing = true; viewModel.refreshData() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            if (isLoading) {
+            if (isLoading && !isRefreshing) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -283,8 +295,9 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                                         title = report.title,
                                         address = report.address,
                                         description = report.description,
-                                        currentVotes = votes?.first ?: 0,
-                                        totalVotes = votes?.second ?: 3,
+                                        currentVotes = votes?.acceptVotes ?: 0,
+                                        totalVotes = 3,
+                                        leaderAccepted = votes?.leaderAccepted ?: false,
                                         imageUrls = report.photos.map { it.filePath },
                                         onClick = {
                                             navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}/${report.reportStatus}/${userRole}")
@@ -300,6 +313,7 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                 }
             }
         }
+        } // PullToRefreshBox
     }
 
     if (showJoinSheet) {
