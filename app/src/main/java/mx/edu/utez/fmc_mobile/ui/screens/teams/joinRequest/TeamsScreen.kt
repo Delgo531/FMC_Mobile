@@ -285,7 +285,7 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                                         totalVotes = votes?.second ?: 3,
                                         imageUrls = report.photos.map { it.filePath },
                                         onClick = {
-                                            navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}")
+                                            navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}/${report.reportStatus}/${userRole}")
                                         },
                                         onAccept = { viewModel.voteReport(report.assignmentId, "ACCEPT") },
                                         onReject = { viewModel.voteReport(report.assignmentId, "REJECT") }

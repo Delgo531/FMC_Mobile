@@ -38,4 +38,7 @@ interface ReportAssignmentApiService {
 
     @GET("api/assignments/{assignmentId}/vote-status")
     suspend fun getVoteStatus(@Path("assignmentId") assignmentId: Long): Response<Map<String, Any>>
+
+    @GET("api/assignments/my-squad-role")
+    suspend fun getMySquadRole(): Response<Map<String, Any>>
 }

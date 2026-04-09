@@ -120,40 +120,15 @@ class TeamsViewModel : ViewModel() {
 
     private suspend fun loadSquadInfo() {
         try {
-            val response = squadRepository.getAllSquads()
+            val response = assignmentRepository.getMySquadRole()
             if (response.isSuccessful) {
-                val body = response.body()
-                val data = body?.get("data")
+                val data = response.body()?.get("data") as? Map<*, *>
                 if (data != null) {
-                    val json = gson.toJson(data)
-                    val listJson = if (json.trimStart().startsWith("[")) json
-                    else {
-                        val pageMap = gson.fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
-                        gson.toJson(pageMap["content"])
-                    }
-                    val squads = gson.fromJson<List<Map<String, Any>>>(listJson,
-                        object : TypeToken<List<Map<String, Any>>>() {}.type) ?: emptyList()
-                    val username = SessionManager.getUsername()
-                    // Find squad where user is a member
-                    val mySquad = squads.find { squad ->
-                        val members = squad["members"] as? List<*>
-                        members?.any { member ->
-                            val m = member as? Map<*, *>
-                            m?.get("username") == username
-                        } == true
-                    }
-                    if (mySquad != null) {
-                        val members = mySquad["members"] as? List<*>
-                        val myMember = members?.find { member ->
-                            val m = member as? Map<*, *>
-                            m?.get("username") == username
-                        } as? Map<*, *>
-                        val myRole = myMember?.get("role")?.toString() ?: "MEMBER"
-                        @Suppress("UNCHECKED_CAST")
-                        _squadInfo.value = (mySquad as Map<String, Any?>).toMutableMap().apply {
-                            put("userRole", myRole)
-                        }
-                    }
+                    _squadInfo.value = mapOf(
+                        "userRole"     to (data["role"]?.toString()         ?: "MEMBER"),
+                        "name"         to (data["squadName"]?.toString()    ?: ""),
+                        "municipality" to (data["municipality"]?.toString() ?: "")
+                    )
                 }
             }
         } catch (_: Exception) { }

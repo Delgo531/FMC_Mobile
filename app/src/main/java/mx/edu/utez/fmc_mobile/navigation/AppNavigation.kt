@@ -86,16 +86,17 @@ fun AppNavigation() {
         }
 
         composable(
-            route = "${Routes.REPORTDETAILS}/{assignmentId}",
-            arguments = listOf(navArgument("assignmentId") { type = NavType.LongType })
+            route = "${Routes.REPORTDETAILS}/{assignmentId}/{reportStatus}/{userRole}",
+            arguments = listOf(
+                navArgument("assignmentId") { type = NavType.LongType },
+                navArgument("reportStatus") { type = NavType.StringType },
+                navArgument("userRole") { type = NavType.StringType }
+            )
         ) { backStackEntry ->
             val assignmentId = backStackEntry.arguments?.getLong("assignmentId") ?: -1L
-            ReportDetailsScreen(navController, assignmentId = assignmentId)
-        }
-
-        // Also keep the old route for backward compatibility
-        composable(Routes.REPORTDETAILS) {
-            ReportDetailsScreen(navController)
+            val reportStatus = backStackEntry.arguments?.getString("reportStatus") ?: "ACCEPTED"
+            val userRole = backStackEntry.arguments?.getString("userRole") ?: "MEMBER"
+            ReportDetailsScreen(navController, assignmentId = assignmentId, reportStatus = reportStatus, userRole = userRole)
         }
 
         composable(Routes.NOTIFICATIONS) {

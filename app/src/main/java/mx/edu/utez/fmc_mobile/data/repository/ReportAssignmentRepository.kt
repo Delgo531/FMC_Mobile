@@ -21,4 +21,6 @@ class ReportAssignmentRepository {
         api.voteAssignment(assignmentId, request)
 
     suspend fun getVoteStatus(assignmentId: Long) = api.getVoteStatus(assignmentId)
+
+    suspend fun getMySquadRole() = api.getMySquadRole()
 }

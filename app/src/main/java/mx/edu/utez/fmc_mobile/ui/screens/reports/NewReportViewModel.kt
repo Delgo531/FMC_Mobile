@@ -10,6 +10,8 @@ import kotlinx.coroutines.launch
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.CreateReportRequest
 import mx.edu.utez.fmc_mobile.data.repository.ReportRepository
 import mx.edu.utez.fmc_mobile.utils.CloudinaryHelper
+import mx.edu.utez.fmc_mobile.utils.LocationHelper
+import mx.edu.utez.fmc_mobile.utils.LocationResult
 import mx.edu.utez.fmc_mobile.utils.SessionManager
 import java.math.BigDecimal
 
@@ -19,6 +21,34 @@ class NewReportViewModel : ViewModel() {
 
     private val _createState = MutableStateFlow<CreateReportState>(CreateReportState.Idle)
     val createState: StateFlow<CreateReportState> = _createState
+
+    private val _locationState = MutableStateFlow<LocationFetchState>(LocationFetchState.Idle)
+    val locationState: StateFlow<LocationFetchState> = _locationState
+
+    // Coordenadas obtenidas por GPS — se usan al enviar el reporte
+    private var gpsLatitude: BigDecimal = BigDecimal.ZERO
+    private var gpsLongitude: BigDecimal = BigDecimal.ZERO
+
+    /** Obtiene la ubicación GPS y convierte a dirección textual. */
+    fun fetchLocation(context: Context) {
+        viewModelScope.launch {
+            _locationState.value = LocationFetchState.Loading
+            when (val result = LocationHelper.getAddressFromGps(context)) {
+                is LocationResult.Success -> {
+                    gpsLatitude = BigDecimal.valueOf(result.latitude)
+                    gpsLongitude = BigDecimal.valueOf(result.longitude)
+                    _locationState.value = LocationFetchState.Success(result.address)
+                }
+                is LocationResult.Error -> {
+                    _locationState.value = LocationFetchState.Error(result.message)
+                }
+            }
+        }
+    }
+
+    fun resetLocationState() {
+        _locationState.value = LocationFetchState.Idle
+    }
 
     fun createReport(
         context: Context,
@@ -39,11 +69,20 @@ class NewReportViewModel : ViewModel() {
             _createState.value = CreateReportState.Error("La dirección es obligatoria")
             return
         }
+        if (address.length < 10) {
+            _createState.value = CreateReportState.Error("Ingresa una dirección más completa (calle, número y colonia)")
+            return
+        }
+        if (!LocationHelper.isInMorelos(address)) {
+            _createState.value = CreateReportState.Error(
+                "La dirección debe corresponder a un municipio de Morelos"
+            )
+            return
+        }
 
         viewModelScope.launch {
             _createState.value = CreateReportState.Loading("Subiendo imágenes...")
             try {
-                // Upload images to Cloudinary
                 val photoUrls = if (images.isNotEmpty()) {
                     val urls = CloudinaryHelper.uploadImages(context, images)
                     if (urls == null) {
@@ -64,8 +103,8 @@ class NewReportViewModel : ViewModel() {
                     description = description,
                     address = address,
                     municipality = municipality,
-                    latitude = BigDecimal.ZERO,
-                    longitude = BigDecimal.ZERO,
+                    latitude = gpsLatitude,
+                    longitude = gpsLongitude,
                     photos = photoUrls.ifEmpty { null }
                 )
 
@@ -97,4 +136,11 @@ sealed class CreateReportState {
     data class Loading(val message: String) : CreateReportState()
     object Success : CreateReportState()
     data class Error(val message: String) : CreateReportState()
+}
+
+sealed class LocationFetchState {
+    object Idle : LocationFetchState()
+    object Loading : LocationFetchState()
+    data class Success(val address: String) : LocationFetchState()
+    data class Error(val message: String) : LocationFetchState()
 }
