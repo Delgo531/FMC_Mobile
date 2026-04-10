@@ -29,7 +29,6 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
     private val assignmentRepository = ReportAssignmentRepository()
     private val gson = Gson()
 
-    // User status: NONE, PENDING, MEMBER
     private val _userStatus = MutableStateFlow("NONE")
     val userStatus: StateFlow<String> = _userStatus
 
@@ -60,63 +59,101 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Check if user is a volunteer/member by checking their role and squad info
-                val isVolunteer = SessionManager.isVolunteer()
-                val role = SessionManager.getRole()
-
-                if (role == "VOLUNTEER" || role == "SQUAD_LEADER" || isVolunteer) {
-                    // Try to get assigned reports - if we get them, user is assigned to a squad (MEMBER)
-                    try {
-                        val assignedResponse = assignmentRepository.getAssignedReports()
-                        if (assignedResponse.isSuccessful) {
-                            val body = assignedResponse.body()
-                            val data = body?.get("data")
-                            if (data != null) {
-                                val json = gson.toJson(data)
-                                val type = object : TypeToken<List<AssignedReportResponse>>() {}.type
-                                val listJson = if (json.trimStart().startsWith("[")) json
-                                else {
-                                    val pageMap = gson.fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
-                                    gson.toJson(pageMap["content"])
-                                }
-                                val reports: List<AssignedReportResponse> = gson.fromJson(listJson, type) ?: emptyList()
-                                _assignedReports.value = reports
-                                loadVoteStatuses(reports)
-                            }
-                            SessionManager.setPendingApplication(false)
-                            _userStatus.value = "MEMBER"
-                            // Squad info is best-effort for display only; failure does not affect status
-                            loadSquadInfo()
-                        } else {
-                            // Volunteer approved but not yet assigned to a squad → waiting screen
-                            _userStatus.value = if (isVolunteer) "VOLUNTEER_WAITING" else "NONE"
-                        }
-                    } catch (_: Exception) {
-                        _userStatus.value = if (isVolunteer) "VOLUNTEER_WAITING" else "NONE"
-                    }
-                } else {
-                    // Verify pending status from the server (SharedPreferences is cleared on reinstall)
-                    try {
-                        val statusResponse = applicationRepository.getMyApplicationStatus()
-                        if (statusResponse.isSuccessful) {
-                            val body = statusResponse.body()
-                            val data = body?.get("data") as? Map<*, *>
-                            val hasPending = data?.get("hasPendingVolunteerApplication") as? Boolean ?: false
-                            SessionManager.setPendingApplication(hasPending)
-                            _userStatus.value = if (hasPending) "PENDING" else "NONE"
-                        } else {
-                            // Fallback to local cache if request fails
-                            _userStatus.value = if (SessionManager.hasPendingApplication()) "PENDING" else "NONE"
-                        }
-                    } catch (_: Exception) {
-                        _userStatus.value = if (SessionManager.hasPendingApplication()) "PENDING" else "NONE"
-                    }
-                }
+                detectAndSetStatus()
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    /**
+     * Detecta el estado real del usuario consultando el servidor en cascada,
+     * sin depender del rol en caché local (que puede estar desactualizado si el
+     * admin cambió el estado desde la última sesión).
+     *
+     * Orden de detección:
+     * 1. getAssignedReports() → 200  → MEMBER (tiene cuadrilla y asignaciones)
+     * 2. getMySquadRole()     → 200  → MEMBER (cuadrilla sin asignaciones) /
+     *                                   VOLUNTEER_WAITING (voluntario sin cuadrilla)
+     * 3. getMyApplicationStatus()    → PENDING o NONE
+     */
+    private suspend fun detectAndSetStatus() {
+        // ── Paso 1: reportes asignados ─────────────────────────────────────
+        try {
+            val assignedResponse = assignmentRepository.getAssignedReports()
+            if (assignedResponse.isSuccessful) {
+                val body = assignedResponse.body()
+                val data = body?.get("data")
+                if (data != null) {
+                    val json = gson.toJson(data)
+                    val type = object : TypeToken<List<AssignedReportResponse>>() {}.type
+                    val listJson = if (json.trimStart().startsWith("[")) json
+                    else {
+                        val pageMap = gson.fromJson<Map<String, Any>>(
+                            json, object : TypeToken<Map<String, Any>>() {}.type
+                        )
+                        gson.toJson(pageMap["content"])
+                    }
+                    val reports: List<AssignedReportResponse> =
+                        gson.fromJson(listJson, type) ?: emptyList()
+                    _assignedReports.value = reports
+                    loadVoteStatuses(reports)
+                }
+                SessionManager.setPendingApplication(false)
+                _userStatus.value = "MEMBER"
+                loadSquadInfo()
+                return
+            }
+        } catch (_: Exception) { }
+
+        // ── Paso 2: rol en cuadrilla ───────────────────────────────────────
+        // Sirve para detectar voluntarios aprobados (con o sin cuadrilla asignada)
+        // cuando getAssignedReports() regresó un error (403/404).
+        try {
+            val squadRoleResponse = assignmentRepository.getMySquadRole()
+            if (squadRoleResponse.isSuccessful) {
+                val data = squadRoleResponse.body()?.get("data") as? Map<*, *>
+                val squadName = data?.get("squadName")?.toString() ?: ""
+                SessionManager.setPendingApplication(false)
+                if (squadName.isNotBlank()) {
+                    // Tiene cuadrilla pero getAssignedReports falló transitoriamente
+                    _squadInfo.value = mapOf(
+                        "userRole"     to (data?.get("role")?.toString()         ?: "MEMBER"),
+                        "name"         to squadName,
+                        "municipality" to (data?.get("municipality")?.toString() ?: "")
+                    )
+                    _userStatus.value = "MEMBER"
+                } else {
+                    // Voluntario aprobado sin cuadrilla asignada aún
+                    _userStatus.value = "VOLUNTEER_WAITING"
+                }
+                return
+            }
+        } catch (_: Exception) { }
+
+        // ── Paso 3: estado de solicitud (ciudadano) ────────────────────────
+        // Si la solicitud pasó de pendiente a procesada (aprobada/rechazada),
+        // el JWT sigue con el rol viejo → necesita re-login para reflejar el cambio.
+        val wasAlreadyPending = SessionManager.hasPendingApplication()
+        try {
+            val statusResponse = applicationRepository.getMyApplicationStatus()
+            if (statusResponse.isSuccessful) {
+                val body = statusResponse.body()
+                val data = body?.get("data") as? Map<*, *>
+                val hasPending = data?.get("hasPendingVolunteerApplication") as? Boolean ?: false
+                SessionManager.setPendingApplication(hasPending)
+                _userStatus.value = when {
+                    hasPending         -> "PENDING"
+                    wasAlreadyPending  -> "SESSION_STALE"   // procesada, JWT desactualizado
+                    else               -> "NONE"
+                }
+            } else {
+                _userStatus.value = if (wasAlreadyPending) "PENDING" else "NONE"
+            }
+        } catch (_: Exception) {
+            _userStatus.value = if (wasAlreadyPending) "PENDING" else "NONE"
         }
     }
 
@@ -137,57 +174,15 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshData() {
-        val role = SessionManager.getRole()
-        val isVolunteer = SessionManager.isVolunteer()
-        if (role == "VOLUNTEER" || role == "SQUAD_LEADER" || isVolunteer) {
-            viewModelScope.launch {
-                _isLoading.value = true
-                try {
-                    val assignedResponse = assignmentRepository.getAssignedReports()
-                    if (assignedResponse.isSuccessful) {
-                        val body = assignedResponse.body()
-                        val data = body?.get("data")
-                        if (data != null) {
-                            val json = gson.toJson(data)
-                            val type = object : TypeToken<List<AssignedReportResponse>>() {}.type
-                            val listJson = if (json.trimStart().startsWith("[")) json
-                            else {
-                                val pageMap = gson.fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
-                                gson.toJson(pageMap["content"])
-                            }
-                            val reports: List<AssignedReportResponse> = gson.fromJson(listJson, type) ?: emptyList()
-                            _assignedReports.value = reports
-                            loadVoteStatuses(reports)
-                        }
-                        SessionManager.setPendingApplication(false)
-                        _userStatus.value = "MEMBER"
-                        loadSquadInfo()
-                    } else {
-                        _userStatus.value = if (isVolunteer) "VOLUNTEER_WAITING" else "NONE"
-                    }
-                } catch (_: Exception) {
-                    _userStatus.value = if (isVolunteer) "VOLUNTEER_WAITING" else "NONE"
-                } finally {
-                    _isLoading.value = false
-                }
-                NotificationHelper.pollAndShowNew(getApplication())
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                detectAndSetStatus()
+            } catch (_: Exception) { }
+            finally {
+                _isLoading.value = false
             }
-        } else {
-            // CITIZEN users: re-check pending status from server on resume
-            // This corrects stale state when switching accounts
-            viewModelScope.launch {
-                try {
-                    val statusResponse = applicationRepository.getMyApplicationStatus()
-                    if (statusResponse.isSuccessful) {
-                        val body = statusResponse.body()
-                        val data = body?.get("data") as? Map<*, *>
-                        val hasPending = data?.get("hasPendingVolunteerApplication") as? Boolean ?: false
-                        SessionManager.setPendingApplication(hasPending)
-                        _userStatus.value = if (hasPending) "PENDING" else "NONE"
-                    }
-                } catch (_: Exception) { }
-                NotificationHelper.pollAndShowNew(getApplication())
-            }
+            NotificationHelper.pollAndShowNew(getApplication())
         }
     }
 
@@ -279,7 +274,7 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
                     val data = response.body()?.get("data") as? Map<*, *>
                     val resolvedStatus = (data?.get("assignmentStatus") as? String) ?: "PENDING_VOTE"
                     if (resolvedStatus != "PENDING_VOTE") {
-                        loadUserStatus()
+                        detectAndSetStatus()
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()

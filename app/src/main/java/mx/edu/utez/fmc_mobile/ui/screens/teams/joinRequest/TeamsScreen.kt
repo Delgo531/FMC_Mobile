@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material.icons.filled.Refresh
+import mx.edu.utez.fmc_mobile.utils.SessionManager
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -126,6 +128,30 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                 }
             } else {
                 when (userStatus) {
+                    "SESSION_STALE" -> {
+                        InfoCard(
+                            title = "Solicitud procesada",
+                            message = "Un administrador procesó tu solicitud. Vuelve a iniciar sesión para ver tu estado actualizado.",
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    tint = Primary
+                                )
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        PrimaryButton(
+                            text = "Actualizar sesión",
+                            onClick = {
+                                SessionManager.clearSession()
+                                navController.navigate(Routes.LOGIN) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
                     "VOLUNTEER_WAITING" -> {
                         InfoCard(
                             title = "Solicitud aprobada",
