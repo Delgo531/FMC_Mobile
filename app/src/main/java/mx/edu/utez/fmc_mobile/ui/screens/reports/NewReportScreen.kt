@@ -22,11 +22,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.GpsFixed
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationCity
+import androidx.compose.material.icons.filled.LocalPostOffice
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Title
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -63,8 +66,6 @@ import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.Surface
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
-import mx.edu.utez.fmc_mobile.utils.LocationHelper
-import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 @Composable
 fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel = viewModel()) {
@@ -72,19 +73,28 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
     var images by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    // Warning shown cuando la dirección escrita manualmente no parece estar en Morelos
-    var addressWarning by remember { mutableStateOf(false) }
+
+    // Campos de ubicación (solo lectura, se llenan con GPS)
+    var gpsMunicipality by remember { mutableStateOf("") }
+    var gpsColony by remember { mutableStateOf("") }
+    var gpsStreet by remember { mutableStateOf("") }
+    var gpsPostalCode by remember { mutableStateOf("") }
+
+    // Detalles adicionales de ubicación (opcional, editable)
+    var locationDetails by remember { mutableStateOf("") }
 
     val createState by viewModel.createState.collectAsState()
     val locationState by viewModel.locationState.collectAsState()
     val context = LocalContext.current
 
-    // Cuando el GPS obtiene la dirección, rellena el campo automáticamente
+    // Cuando el GPS obtiene la dirección, rellena los campos automáticamente
     LaunchedEffect(locationState) {
         if (locationState is LocationFetchState.Success) {
-            address = (locationState as LocationFetchState.Success).address
-            addressWarning = false
+            val ls = locationState as LocationFetchState.Success
+            gpsMunicipality = ls.municipality
+            gpsColony = ls.colony
+            gpsStreet = ls.street
+            gpsPostalCode = ls.postalCode
         }
     }
 
@@ -172,28 +182,68 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── Campo de dirección ─────────────────────────────────────────
+            // ── Sección de ubicación ───────────────────────────────────────
+
             TxtField(
-                value = address,
-                onValueChange = { newValue ->
-                    address = newValue
-                    // Advierte si el municipio de la dirección no coincide con el de registro
-                    val userMunicipality = SessionManager.getMunicipality()
-                    val extracted = LocationHelper.extractMunicipality(newValue)
-                    addressWarning = newValue.isNotBlank() && (
-                        (extracted != null && extracted != userMunicipality) ||
-                        (extracted == null && !LocationHelper.isInMorelos(newValue))
-                    )
-                    // Si empieza a editar manualmente, descarta el estado del GPS
-                    if (locationState is LocationFetchState.Success) {
-                        viewModel.resetLocationState()
-                    }
-                },
-                label = "Dirección *",
-                placeHolder = "Ej. Av. Plan de Ayala 123, Cuernavaca",
+                value = gpsMunicipality,
+                onValueChange = {},
+                label = "Municipio *",
+                placeHolder = "—",
+                readOnly = true,
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.LocationOn,
+                        imageVector = Icons.Default.LocationCity,
+                        contentDescription = null,
+                        tint = Primary
+                    )
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TxtField(
+                value = gpsColony,
+                onValueChange = {},
+                label = "Colonia *",
+                placeHolder = "—",
+                readOnly = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = null,
+                        tint = Primary
+                    )
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TxtField(
+                value = gpsStreet,
+                onValueChange = {},
+                label = "Calle *",
+                placeHolder = "—",
+                readOnly = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Map,
+                        contentDescription = null,
+                        tint = Primary
+                    )
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TxtField(
+                value = gpsPostalCode,
+                onValueChange = {},
+                label = "Código postal *",
+                placeHolder = "—",
+                readOnly = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.LocalPostOffice,
                         contentDescription = null,
                         tint = Primary
                     )
@@ -202,7 +252,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Botón "Usar mi ubicación"
+            // Botón "Obtener dirección"
             OutlinedButton(
                 onClick = {
                     locationPermissionLauncher.launch(
@@ -236,7 +286,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Usar mi ubicación actual",
+                        text = "Obtener dirección",
                         style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
@@ -265,27 +315,22 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 else -> {}
             }
 
-            // Advertencia de dirección fuera de Morelos (escrita manualmente)
-            if (addressWarning) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ── Detalles adicionales de ubicación (opcional) ───────────────
+            TxtField(
+                value = locationDetails,
+                onValueChange = { locationDetails = it },
+                label = "Detalles de la ubicación (opcional)",
+                placeHolder = "Ej. Frente al parque, entre calles...",
+                leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.Warning,
+                        imageVector = Icons.Default.EditNote,
                         contentDescription = null,
-                        tint = Color(0xFFF59E0B),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = "La dirección debe estar en tu municipio: ${SessionManager.getMunicipality()}",
-                        style = AppTypography.Caption,
-                        color = Color(0xFFF59E0B)
+                        tint = Primary
                     )
                 }
-            }
+            )
 
             Spacer(modifier = Modifier.height(25.dp))
 
@@ -316,7 +361,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 text = if (createState is CreateReportState.Loading) "Enviando..." else "Enviar Reporte",
                 onClick = {
                     if (createState !is CreateReportState.Loading) {
-                        viewModel.createReport(context, title, description, address, images)
+                        viewModel.createReport(context, title, description, locationDetails, images)
                     }
                 },
                 trailingIcon = {

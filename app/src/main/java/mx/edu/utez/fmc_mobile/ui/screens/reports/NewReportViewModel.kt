@@ -25,10 +25,13 @@ class NewReportViewModel : ViewModel() {
     private val _locationState = MutableStateFlow<LocationFetchState>(LocationFetchState.Idle)
     val locationState: StateFlow<LocationFetchState> = _locationState
 
-    // Coordenadas y municipio obtenidos por GPS — se usan al enviar el reporte
+    // Datos de ubicación obtenidos por GPS — se usan al enviar el reporte
     private var gpsLatitude: BigDecimal = BigDecimal.ZERO
     private var gpsLongitude: BigDecimal = BigDecimal.ZERO
     private var resolvedMunicipality: String = ""
+    private var gpsStreet: String = ""
+    private var gpsColony: String = ""
+    private var gpsPostalCode: String = ""
 
     /** Obtiene la ubicación GPS y convierte a dirección textual. */
     fun fetchLocation(context: Context) {
@@ -39,7 +42,15 @@ class NewReportViewModel : ViewModel() {
                     gpsLatitude = BigDecimal.valueOf(result.latitude)
                     gpsLongitude = BigDecimal.valueOf(result.longitude)
                     resolvedMunicipality = result.municipality
-                    _locationState.value = LocationFetchState.Success(result.address)
+                    gpsStreet = result.street
+                    gpsColony = result.colony
+                    gpsPostalCode = result.postalCode
+                    _locationState.value = LocationFetchState.Success(
+                        municipality = result.municipality,
+                        colony       = result.colony,
+                        street       = result.street,
+                        postalCode   = result.postalCode
+                    )
                 }
                 is LocationResult.Error -> {
                     _locationState.value = LocationFetchState.Error(result.message)
@@ -51,13 +62,16 @@ class NewReportViewModel : ViewModel() {
     fun resetLocationState() {
         _locationState.value = LocationFetchState.Idle
         resolvedMunicipality = ""
+        gpsStreet = ""
+        gpsColony = ""
+        gpsPostalCode = ""
     }
 
     fun createReport(
         context: Context,
         title: String,
         description: String,
-        address: String,
+        locationDetails: String,
         images: List<Uri>
     ) {
         if (title.isBlank() || title.length < 5) {
@@ -68,39 +82,18 @@ class NewReportViewModel : ViewModel() {
             _createState.value = CreateReportState.Error("La descripción debe tener al menos 20 caracteres")
             return
         }
-        if (address.isBlank()) {
-            _createState.value = CreateReportState.Error("La dirección es obligatoria")
+        if (resolvedMunicipality.isBlank()) {
+            _createState.value = CreateReportState.Error("Debes obtener tu ubicación con el botón de GPS")
             return
         }
-        if (address.length < 10) {
-            _createState.value = CreateReportState.Error("Ingresa una dirección más completa (calle, número y colonia)")
-            return
-        }
+
         val userMunicipality = SessionManager.getMunicipality()
 
-        // Validar que la dirección GPS corresponda al municipio del usuario
-        if (resolvedMunicipality.isNotBlank() && resolvedMunicipality != userMunicipality) {
+        if (resolvedMunicipality != userMunicipality) {
             _createState.value = CreateReportState.Error(
                 "Tu ubicación GPS está en $resolvedMunicipality. Solo puedes reportar en tu municipio: $userMunicipality"
             )
             return
-        }
-
-        // Validar que la dirección escrita manualmente corresponda al municipio del usuario
-        if (resolvedMunicipality.isBlank()) {
-            val extracted = LocationHelper.extractMunicipality(address)
-            if (extracted != null && extracted != userMunicipality) {
-                _createState.value = CreateReportState.Error(
-                    "La dirección está en $extracted. Solo puedes reportar en tu municipio: $userMunicipality"
-                )
-                return
-            }
-            if (!LocationHelper.isInMorelos(address)) {
-                _createState.value = CreateReportState.Error(
-                    "La dirección debe estar en tu municipio de registro: $userMunicipality"
-                )
-                return
-            }
         }
 
         viewModelScope.launch {
@@ -119,17 +112,24 @@ class NewReportViewModel : ViewModel() {
 
                 _createState.value = CreateReportState.Loading("Enviando reporte...")
 
-                // Siempre se envía el municipio de registro del usuario (regla de negocio)
-                val municipality = userMunicipality
+                // Componer la dirección a partir de los campos GPS
+                val addressParts = listOfNotNull(
+                    gpsStreet.takeIf { it.isNotBlank() },
+                    gpsColony.takeIf { it.isNotBlank() },
+                    userMunicipality.takeIf { it.isNotBlank() },
+                    gpsPostalCode.takeIf { it.isNotBlank() }
+                )
+                val address = addressParts.joinToString(", ")
+                    .let { if (locationDetails.isNotBlank()) "$it - $locationDetails" else it }
 
                 val request = CreateReportRequest(
-                    title = title,
-                    description = description,
-                    address = address,
-                    municipality = municipality,
-                    latitude = gpsLatitude,
-                    longitude = gpsLongitude,
-                    photos = photoUrls.ifEmpty { null }
+                    title        = title,
+                    description  = description,
+                    address      = address,
+                    municipality = userMunicipality,
+                    latitude     = gpsLatitude,
+                    longitude    = gpsLongitude,
+                    photos       = photoUrls.ifEmpty { null }
                 )
 
                 val response = repository.createReport(request)
@@ -155,6 +155,9 @@ class NewReportViewModel : ViewModel() {
         resolvedMunicipality = ""
         gpsLatitude = BigDecimal.ZERO
         gpsLongitude = BigDecimal.ZERO
+        gpsStreet = ""
+        gpsColony = ""
+        gpsPostalCode = ""
     }
 }
 
@@ -168,6 +171,11 @@ sealed class CreateReportState {
 sealed class LocationFetchState {
     object Idle : LocationFetchState()
     object Loading : LocationFetchState()
-    data class Success(val address: String) : LocationFetchState()
+    data class Success(
+        val municipality: String,
+        val colony: String,
+        val street: String,
+        val postalCode: String
+    ) : LocationFetchState()
     data class Error(val message: String) : LocationFetchState()
 }

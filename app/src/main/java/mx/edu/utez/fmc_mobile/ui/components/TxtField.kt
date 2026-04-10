@@ -33,6 +33,7 @@ fun TxtField(
 
     leadingIcon: @Composable (() -> Unit)? = null,
     errorMessage: String? = null,
+    readOnly: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -57,15 +58,16 @@ fun TxtField(
                 placeholder = { Text(placeHolder, color = TextSecondary) },
                 leadingIcon = leadingIcon,
                 singleLine = true,
+                readOnly = readOnly,
                 colors = TextFieldDefaults.colors(
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
+                    focusedTextColor = if (readOnly) TextSecondary else TextPrimary,
+                    unfocusedTextColor = if (readOnly) TextSecondary else TextPrimary,
                     cursorColor = if (errorMessage != null) CompletedText else Primary,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
-                    focusedContainerColor = if (errorMessage != null) FondoError else Surface,
-                    unfocusedContainerColor = if (errorMessage != null) FondoError else Surface
+                    focusedContainerColor = if (readOnly) Background else if (errorMessage != null) FondoError else Surface,
+                    unfocusedContainerColor = if (readOnly) Background else if (errorMessage != null) FondoError else Surface
                 ),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()

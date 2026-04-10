@@ -115,6 +115,9 @@ object LocationHelper {
                 LocationResult.Success(
                     address      = info.fullAddress,
                     municipality = info.municipality,
+                    street       = info.street,
+                    colony       = info.colony,
+                    postalCode   = info.postalCode,
                     latitude     = location.latitude,
                     longitude    = location.longitude
                 )
@@ -128,7 +131,13 @@ object LocationHelper {
 
     // ── Geocoder interno ───────────────────────────────────────────────────────
 
-    private data class AddressInfo(val fullAddress: String, val municipality: String)
+    private data class AddressInfo(
+        val fullAddress: String,
+        val municipality: String,
+        val street: String,
+        val colony: String,
+        val postalCode: String
+    )
 
     private suspend fun reverseGeocode(context: Context, lat: Double, lng: Double): AddressInfo? =
         withContext(Dispatchers.IO) {
@@ -157,7 +166,15 @@ object LocationHelper {
                     ?: extractMunicipality(fullAddress)
                     ?: "Morelos"   // fallback genérico si el geocoder no tiene datos precisos
 
-            AddressInfo(fullAddress, municipality)
+            val street = buildString {
+                androidAddress.thoroughfare?.let { append(it) }
+                androidAddress.subThoroughfare?.let { append(" $it") }
+            }.trim()
+
+            val colony = androidAddress.subLocality ?: ""
+            val postalCode = androidAddress.postalCode ?: ""
+
+            AddressInfo(fullAddress, municipality, street, colony, postalCode)
         }
 }
 
@@ -165,6 +182,9 @@ sealed class LocationResult {
     data class Success(
         val address: String,
         val municipality: String,
+        val street: String,
+        val colony: String,
+        val postalCode: String,
         val latitude: Double,
         val longitude: Double
     ) : LocationResult()
