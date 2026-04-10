@@ -85,9 +85,12 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
     val createState by viewModel.createState.collectAsState()
     val locationState by viewModel.locationState.collectAsState()
+    val titleError by viewModel.titleError.collectAsState()
+    val descriptionError by viewModel.descriptionError.collectAsState()
+    val locationError by viewModel.locationError.collectAsState()
     val context = LocalContext.current
 
-    // Cuando el GPS obtiene la dirección, rellena los campos automáticamente
+    // Cuando el GPS obtiene la dirección, rellena los campos y limpia el error de ubicación
     LaunchedEffect(locationState) {
         if (locationState is LocationFetchState.Success) {
             val ls = locationState as LocationFetchState.Success
@@ -95,6 +98,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
             gpsColony = ls.colony
             gpsStreet = ls.street
             gpsPostalCode = ls.postalCode
+            viewModel.clearLocationError()
         }
     }
 
@@ -152,9 +156,13 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             TxtField(
                 value = title,
-                onValueChange = { title = it },
+                onValueChange = {
+                    title = it
+                    if (it.length >= 5) viewModel.clearTitleError()
+                },
                 label = "Título del reporte *",
                 placeHolder = "Ej. Bache en avenida principal",
+                errorMessage = if (titleError) "" else null,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Title,
@@ -168,9 +176,13 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             TxtField(
                 value = description,
-                onValueChange = { description = it },
+                onValueChange = {
+                    description = it
+                    if (it.length >= 20) viewModel.clearDescriptionError()
+                },
                 label = "Descripción del problema *",
                 placeHolder = "Describe el problema con detalle",
+                errorMessage = if (descriptionError) "" else null,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Description,
@@ -190,6 +202,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 label = "Municipio *",
                 placeHolder = "—",
                 readOnly = true,
+                errorMessage = if (locationError) "" else null,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.LocationCity,
@@ -207,6 +220,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 label = "Colonia *",
                 placeHolder = "—",
                 readOnly = true,
+                errorMessage = if (locationError) "" else null,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Home,
@@ -224,6 +238,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 label = "Calle *",
                 placeHolder = "—",
                 readOnly = true,
+                errorMessage = if (locationError) "" else null,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Map,
@@ -241,6 +256,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 label = "Código postal *",
                 placeHolder = "—",
                 readOnly = true,
+                errorMessage = if (locationError) "" else null,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.LocalPostOffice,

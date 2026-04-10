@@ -22,6 +22,15 @@ class NewReportViewModel : ViewModel() {
     private val _createState = MutableStateFlow<CreateReportState>(CreateReportState.Idle)
     val createState: StateFlow<CreateReportState> = _createState
 
+    private val _titleError = MutableStateFlow(false)
+    val titleError: StateFlow<Boolean> = _titleError
+
+    private val _descriptionError = MutableStateFlow(false)
+    val descriptionError: StateFlow<Boolean> = _descriptionError
+
+    private val _locationError = MutableStateFlow(false)
+    val locationError: StateFlow<Boolean> = _locationError
+
     private val _locationState = MutableStateFlow<LocationFetchState>(LocationFetchState.Idle)
     val locationState: StateFlow<LocationFetchState> = _locationState
 
@@ -74,16 +83,19 @@ class NewReportViewModel : ViewModel() {
         locationDetails: String,
         images: List<Uri>
     ) {
-        if (title.isBlank() || title.length < 5) {
-            _createState.value = CreateReportState.Error("El título debe tener al menos 5 caracteres")
-            return
-        }
-        if (description.isBlank() || description.length < 20) {
-            _createState.value = CreateReportState.Error("La descripción debe tener al menos 20 caracteres")
-            return
-        }
-        if (resolvedMunicipality.isBlank()) {
-            _createState.value = CreateReportState.Error("Debes obtener tu ubicación con el botón de GPS")
+        // Validar todos los campos a la vez para marcar todos los errores simultáneamente
+        _titleError.value    = title.isBlank() || title.length < 5
+        _descriptionError.value = description.isBlank() || description.length < 20
+        _locationError.value = resolvedMunicipality.isBlank()
+
+        if (_titleError.value || _descriptionError.value || _locationError.value) {
+            _createState.value = CreateReportState.Error(
+                when {
+                    _titleError.value       -> "El título debe tener al menos 5 caracteres"
+                    _descriptionError.value -> "La descripción debe tener al menos 20 caracteres"
+                    else                    -> "Debes obtener tu ubicación con el botón de GPS"
+                }
+            )
             return
         }
 
@@ -150,8 +162,15 @@ class NewReportViewModel : ViewModel() {
         }
     }
 
+    fun clearTitleError()       { _titleError.value = false }
+    fun clearDescriptionError() { _descriptionError.value = false }
+    fun clearLocationError()    { _locationError.value = false }
+
     fun resetState() {
         _createState.value = CreateReportState.Idle
+        _titleError.value = false
+        _descriptionError.value = false
+        _locationError.value = false
         resolvedMunicipality = ""
         gpsLatitude = BigDecimal.ZERO
         gpsLongitude = BigDecimal.ZERO

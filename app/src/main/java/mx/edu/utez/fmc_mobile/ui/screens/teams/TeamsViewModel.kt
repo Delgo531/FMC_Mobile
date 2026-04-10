@@ -134,9 +134,6 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
         } catch (_: Exception) { }
 
         // ── Paso 3: estado de solicitud (ciudadano) ────────────────────────
-        // Si la solicitud pasó de pendiente a procesada (aprobada/rechazada),
-        // el JWT sigue con el rol viejo → necesita re-login para reflejar el cambio.
-        val wasAlreadyPending = SessionManager.hasPendingApplication()
         try {
             val statusResponse = applicationRepository.getMyApplicationStatus()
             if (statusResponse.isSuccessful) {
@@ -144,16 +141,12 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
                 val data = body?.get("data") as? Map<*, *>
                 val hasPending = data?.get("hasPendingVolunteerApplication") as? Boolean ?: false
                 SessionManager.setPendingApplication(hasPending)
-                _userStatus.value = when {
-                    hasPending         -> "PENDING"
-                    wasAlreadyPending  -> "SESSION_STALE"   // procesada, JWT desactualizado
-                    else               -> "NONE"
-                }
+                _userStatus.value = if (hasPending) "PENDING" else "NONE"
             } else {
-                _userStatus.value = if (wasAlreadyPending) "PENDING" else "NONE"
+                _userStatus.value = if (SessionManager.hasPendingApplication()) "PENDING" else "NONE"
             }
         } catch (_: Exception) {
-            _userStatus.value = if (wasAlreadyPending) "PENDING" else "NONE"
+            _userStatus.value = if (SessionManager.hasPendingApplication()) "PENDING" else "NONE"
         }
     }
 

@@ -66,8 +66,8 @@ fun TxtField(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
-                    focusedContainerColor = if (readOnly) Background else if (errorMessage != null) FondoError else Surface,
-                    unfocusedContainerColor = if (readOnly) Background else if (errorMessage != null) FondoError else Surface
+                    focusedContainerColor = if (errorMessage != null) FondoError else if (readOnly) Background else Surface,
+                    unfocusedContainerColor = if (errorMessage != null) FondoError else if (readOnly) Background else Surface
                 ),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()

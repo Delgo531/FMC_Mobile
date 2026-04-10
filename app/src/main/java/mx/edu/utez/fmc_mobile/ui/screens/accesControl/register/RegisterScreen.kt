@@ -70,7 +70,6 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
     var password by remember { mutableStateOf("") }
     var municipio by remember { mutableStateOf("") }
 
-    val hasError = registerState is RegisterState.Error
 
     LaunchedEffect(registerState) {
         if (registerState is RegisterState.Success) {
@@ -136,7 +135,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                         tint = Primary
                     )
                 },
-                errorMessage = if (usernameError || hasError) "" else null
+                errorMessage = if (usernameError) "" else null
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -153,7 +152,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                         tint = Primary
                     )
                 },
-                errorMessage = if (emailError || hasError) "" else null
+                errorMessage = if (emailError) "" else null
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -163,7 +162,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                 onValueChange = { password = it },
                 label = "Contraseña *",
                 placeHolder = "Mínimo 8 caracteres",
-                errorMessage = if (passwordError || hasError) "" else null
+                errorMessage = if (passwordError) "" else null
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -180,7 +179,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                         tint = Primary
                     )
                 },
-                errorMessage = if (municipioError || hasError) "" else null
+                errorMessage = if (municipioError) "" else null
             )
 
             Spacer(modifier = Modifier.height(15.dp))
