@@ -12,7 +12,6 @@ import mx.edu.utez.fmc_mobile.data.repository.ReportRepository
 import mx.edu.utez.fmc_mobile.utils.CloudinaryHelper
 import mx.edu.utez.fmc_mobile.utils.LocationHelper
 import mx.edu.utez.fmc_mobile.utils.LocationResult
-import mx.edu.utez.fmc_mobile.utils.SessionManager
 import java.math.BigDecimal
 
 class NewReportViewModel : ViewModel() {
@@ -99,15 +98,6 @@ class NewReportViewModel : ViewModel() {
             return
         }
 
-        val userMunicipality = SessionManager.getMunicipality()
-
-        if (resolvedMunicipality != userMunicipality) {
-            _createState.value = CreateReportState.Error(
-                "Tu ubicación GPS está en $resolvedMunicipality. Solo puedes reportar en tu municipio: $userMunicipality"
-            )
-            return
-        }
-
         viewModelScope.launch {
             _createState.value = CreateReportState.Loading("Subiendo imágenes...")
             try {
@@ -128,7 +118,7 @@ class NewReportViewModel : ViewModel() {
                 val addressParts = listOfNotNull(
                     gpsStreet.takeIf { it.isNotBlank() },
                     gpsColony.takeIf { it.isNotBlank() },
-                    userMunicipality.takeIf { it.isNotBlank() },
+                    resolvedMunicipality.takeIf { it.isNotBlank() },
                     gpsPostalCode.takeIf { it.isNotBlank() }
                 )
                 val address = addressParts.joinToString(", ")
@@ -138,7 +128,7 @@ class NewReportViewModel : ViewModel() {
                     title        = title,
                     description  = description,
                     address      = address,
-                    municipality = userMunicipality,
+                    municipality = resolvedMunicipality,
                     latitude     = gpsLatitude,
                     longitude    = gpsLongitude,
                     photos       = photoUrls.ifEmpty { null }
