@@ -276,8 +276,7 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                         } else {
                             assignedReports.filter {
                                 it.assignmentStatus.equals("COMPLETED", ignoreCase = true) ||
-                                it.assignmentStatus.equals("REJECTED", ignoreCase = true) ||
-                                it.reportStatus.equals("CLOSED", ignoreCase = true)
+                                it.assignmentStatus.equals("REJECTED", ignoreCase = true)
                             }
                         }
 
