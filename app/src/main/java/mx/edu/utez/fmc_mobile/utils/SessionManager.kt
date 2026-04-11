@@ -16,8 +16,9 @@ object SessionManager {
     private const val KEY_MUNICIPALITY = "municipality"
     private const val KEY_ROLE = "role"
     private const val KEY_IS_VOLUNTEER = "is_volunteer"
-    private const val KEY_HAS_PENDING_APPLICATION = "has_pending_application"
-    private const val KEY_SHOWN_NOTIFICATION_IDS   = "shown_notification_ids"
+    private const val KEY_HAS_PENDING_APPLICATION        = "has_pending_application"
+    private const val KEY_HAS_PENDING_LEADER_APPLICATION = "has_pending_leader_application"
+    private const val KEY_SHOWN_NOTIFICATION_IDS         = "shown_notification_ids"
 
     private lateinit var prefs: SharedPreferences
 
@@ -68,6 +69,12 @@ object SessionManager {
     fun hasPendingApplication(): Boolean = prefs.getBoolean(pendingKey(), false)
     fun setPendingApplication(value: Boolean) {
         prefs.edit().putBoolean(pendingKey(), value).apply()
+    }
+
+    private fun leaderPendingKey(): String = "${KEY_HAS_PENDING_LEADER_APPLICATION}_${getUserId()}"
+    fun hasPendingLeaderApplication(): Boolean = prefs.getBoolean(leaderPendingKey(), false)
+    fun setPendingLeaderApplication(value: Boolean) {
+        prefs.edit().putBoolean(leaderPendingKey(), value).apply()
     }
 
     fun isLoggedIn(): Boolean = getToken() != null

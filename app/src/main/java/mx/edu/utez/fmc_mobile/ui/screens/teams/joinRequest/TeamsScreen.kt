@@ -47,6 +47,7 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
     val errorMessage by viewModel.errorMessage.collectAsState()
     val actionSuccess by viewModel.actionSuccess.collectAsState()
     val voteStatusMap by viewModel.voteStatusMap.collectAsState()
+    val hasPendingLeaderApp by viewModel.hasPendingLeaderApp.collectAsState()
 
     var showJoinSheet by remember { mutableStateOf(false) }
     var showCancelSheet by remember { mutableStateOf(false) }
@@ -214,23 +215,26 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                         if (userRole == "MEMBER") {
                             Spacer(modifier = Modifier.height(12.dp))
                             OutlinedButton(
-                                onClick = { showLeaderSheet = true },
+                                onClick = { if (!hasPendingLeaderApp) showLeaderSheet = true },
+                                enabled = !hasPendingLeaderApp,
                                 shape = RoundedCornerShape(50.dp),
-                                border = BorderStroke(1.dp, Primary),
+                                border = BorderStroke(1.dp, if (hasPendingLeaderApp) TextSecondary else Primary),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = Color.White,
-                                    contentColor = Primary
+                                    contentColor = if (hasPendingLeaderApp) TextSecondary else Primary,
+                                    disabledContainerColor = Color.White,
+                                    disabledContentColor = TextSecondary
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
+                                    imageVector = if (hasPendingLeaderApp) Icons.Default.HourglassEmpty else Icons.Default.AutoAwesome,
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Postularme como Líder",
+                                    text = if (hasPendingLeaderApp) "Postulación pendiente..." else "Postularme como Líder",
                                     style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold)
                                 )
                             }
@@ -303,6 +307,7 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
                                         totalVotes = 3,
                                         leaderAccepted = votes?.leaderAccepted ?: false,
                                         imageUrls = report.photos.map { it.filePath },
+                                        isLeader = userRole == "LEADER",
                                         onClick = {
                                             navController.navigate("${Routes.REPORTDETAILS}/${report.assignmentId}/${report.reportStatus}/${report.assignmentStatus}/${userRole}")
                                         },

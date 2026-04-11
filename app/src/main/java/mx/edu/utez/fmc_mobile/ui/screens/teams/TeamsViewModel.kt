@@ -47,6 +47,9 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
     private val _actionSuccess = MutableStateFlow<String?>(null)
     val actionSuccess: StateFlow<String?> = _actionSuccess
 
+    private val _hasPendingLeaderApp = MutableStateFlow(false)
+    val hasPendingLeaderApp: StateFlow<Boolean> = _hasPendingLeaderApp
+
     // Key: assignmentId
     private val _voteStatusMap = MutableStateFlow<Map<Long, VoteStatus>>(emptyMap())
     val voteStatusMap: StateFlow<Map<Long, VoteStatus>> = _voteStatusMap
@@ -104,6 +107,7 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
                 SessionManager.setPendingApplication(false)
                 _userStatus.value = "MEMBER"
                 loadSquadInfo()
+                checkLeaderApplicationStatus()
                 return
             }
         } catch (_: Exception) { }
@@ -125,6 +129,7 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
                         "municipality" to (data?.get("municipality")?.toString() ?: "")
                     )
                     _userStatus.value = "MEMBER"
+                    checkLeaderApplicationStatus()
                 } else {
                     // Voluntario aprobado sin cuadrilla asignada aún
                     _userStatus.value = "VOLUNTEER_WAITING"
@@ -148,6 +153,35 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
         } catch (_: Exception) {
             _userStatus.value = if (SessionManager.hasPendingApplication()) "PENDING" else "NONE"
         }
+    }
+
+    /**
+     * Consulta si el usuario tiene una postulación de líder pendiente.
+     * Si el usuario ya es LÍDER, limpia el flag local.
+     * Intenta leer el campo hasPendingLeaderApplication de la API; si no existe,
+     * usa el valor guardado localmente en SessionManager.
+     */
+    private suspend fun checkLeaderApplicationStatus() {
+        val currentRole = _squadInfo.value?.get("userRole")?.toString()
+        if (currentRole == "LEADER") {
+            SessionManager.setPendingLeaderApplication(false)
+            _hasPendingLeaderApp.value = false
+            return
+        }
+        try {
+            val response = applicationRepository.getMyApplicationStatus()
+            if (response.isSuccessful) {
+                val data = response.body()?.get("data") as? Map<*, *>
+                val fromApi = data?.get("hasPendingLeaderApplication") as? Boolean
+                if (fromApi != null) {
+                    SessionManager.setPendingLeaderApplication(fromApi)
+                    _hasPendingLeaderApp.value = fromApi
+                    return
+                }
+            }
+        } catch (_: Exception) { }
+        // Fallback al flag local
+        _hasPendingLeaderApp.value = SessionManager.hasPendingLeaderApplication()
     }
 
     private suspend fun loadSquadInfo() {
@@ -313,6 +347,8 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = applicationRepository.applyAsLeader()
                 if (response.isSuccessful) {
+                    SessionManager.setPendingLeaderApplication(true)
+                    _hasPendingLeaderApp.value = true
                     _actionSuccess.value = "Solicitud de liderazgo enviada. El administrador revisará tu solicitud."
                 } else {
                     val errorBody = response.errorBody()?.string()
@@ -324,6 +360,8 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
                     if (errorMsg.contains("líder", ignoreCase = true) ||
                         errorMsg.contains("leader", ignoreCase = true) ||
                         errorMsg.contains("pendiente", ignoreCase = true)) {
+                        SessionManager.setPendingLeaderApplication(true)
+                        _hasPendingLeaderApp.value = true
                         _actionSuccess.value = "Ya tienes una solicitud de liderazgo pendiente"
                     } else {
                         _errorMessage.value = errorMsg

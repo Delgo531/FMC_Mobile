@@ -59,6 +59,7 @@ fun AssignedReportCard(
     totalVotes: Int,
     leaderAccepted: Boolean = false,
     imageUrls: List<String> = emptyList(),
+    isLeader: Boolean = false,
     onClick: () -> Unit = {},
     onAccept: () -> Unit,
     onReject: () -> Unit,
@@ -94,6 +95,7 @@ fun AssignedReportCard(
     }
 
     var currentImage by remember { mutableIntStateOf(0) }
+    var showRejectDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier.fillMaxWidth().clickable { onClick() },
@@ -315,28 +317,63 @@ fun AssignedReportCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onReject,
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, TextSecondary),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Surface, contentColor = TextSecondary),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(imageVector = Icons.Filled.ThumbDown, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Rechazar", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
+                    if (isLeader) {
+                        OutlinedButton(
+                            onClick = { showRejectDialog = true },
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, TextSecondary),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Surface, contentColor = TextSecondary),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(imageVector = Icons.Filled.ThumbDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(text = "Rechazar", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
+                        }
                     }
 
                     Button(
                         onClick = onAccept,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                        modifier = Modifier.weight(1f)
+                        modifier = if (isLeader) Modifier.weight(1f) else Modifier.fillMaxWidth()
                     ) {
                         Icon(imageVector = Icons.Filled.ThumbUp, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(text = "Aceptar", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
                     }
+                }
+
+                if (showRejectDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showRejectDialog = false },
+                        title = {
+                            Text(
+                                text = "¿Rechazar reporte?",
+                                style = AppTypography.Body.copy(fontWeight = FontWeight.Bold)
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = "Esta acción rechazará el reporte \"$title\". ¿Estás seguro de que deseas continuar?",
+                                style = AppTypography.BodySmall
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    showRejectDialog = false
+                                    onReject()
+                                }
+                            ) {
+                                Text("Sí, rechazar", color = Color(0xFFC62828))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showRejectDialog = false }) {
+                                Text("Cancelar", color = TextSecondary)
+                            }
+                        }
+                    )
                 }
             }
         }
