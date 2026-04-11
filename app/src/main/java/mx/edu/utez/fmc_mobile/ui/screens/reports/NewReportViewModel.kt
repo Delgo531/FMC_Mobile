@@ -30,6 +30,9 @@ class NewReportViewModel : ViewModel() {
     private val _locationError = MutableStateFlow(false)
     val locationError: StateFlow<Boolean> = _locationError
 
+    private val _imagesError = MutableStateFlow(false)
+    val imagesError: StateFlow<Boolean> = _imagesError
+
     private val _locationState = MutableStateFlow<LocationFetchState>(LocationFetchState.Idle)
     val locationState: StateFlow<LocationFetchState> = _locationState
 
@@ -83,16 +86,18 @@ class NewReportViewModel : ViewModel() {
         images: List<Uri>
     ) {
         // Validar todos los campos a la vez para marcar todos los errores simultáneamente
-        _titleError.value    = title.isBlank() || title.length < 5
+        _titleError.value       = title.isBlank() || title.length < 5
         _descriptionError.value = description.isBlank() || description.length < 20
-        _locationError.value = resolvedMunicipality.isBlank()
+        _locationError.value    = resolvedMunicipality.isBlank()
+        _imagesError.value      = images.isEmpty()
 
-        if (_titleError.value || _descriptionError.value || _locationError.value) {
+        if (_titleError.value || _descriptionError.value || _locationError.value || _imagesError.value) {
             _createState.value = CreateReportState.Error(
                 when {
                     _titleError.value       -> "El título debe tener al menos 5 caracteres"
                     _descriptionError.value -> "La descripción debe tener al menos 20 caracteres"
-                    else                    -> "Debes obtener tu ubicación con el botón de GPS"
+                    _locationError.value    -> "Debes obtener tu ubicación con el botón de GPS"
+                    else                    -> "Debes agregar al menos una foto del problema"
                 }
             )
             return
@@ -155,12 +160,14 @@ class NewReportViewModel : ViewModel() {
     fun clearTitleError()       { _titleError.value = false }
     fun clearDescriptionError() { _descriptionError.value = false }
     fun clearLocationError()    { _locationError.value = false }
+    fun clearImagesError()      { _imagesError.value = false }
 
     fun resetState() {
         _createState.value = CreateReportState.Idle
         _titleError.value = false
         _descriptionError.value = false
         _locationError.value = false
+        _imagesError.value = false
         resolvedMunicipality = ""
         gpsLatitude = BigDecimal.ZERO
         gpsLongitude = BigDecimal.ZERO

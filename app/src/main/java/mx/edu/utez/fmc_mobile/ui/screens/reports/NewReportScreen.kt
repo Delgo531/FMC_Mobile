@@ -88,6 +88,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
     val titleError by viewModel.titleError.collectAsState()
     val descriptionError by viewModel.descriptionError.collectAsState()
     val locationError by viewModel.locationError.collectAsState()
+    val imagesError by viewModel.imagesError.collectAsState()
     val context = LocalContext.current
 
     // Cuando el GPS obtiene la dirección, rellena los campos y limpia el error de ubicación
@@ -148,7 +149,21 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 PhotoPicker(
                     images = images,
-                    onImagesSelected = { images = it }
+                    onImagesSelected = {
+                        images = it
+                        if (it.isNotEmpty()) viewModel.clearImagesError()
+                    }
+                )
+            }
+
+            if (imagesError) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Debes agregar al menos una foto del problema",
+                    color = Color.Red,
+                    style = AppTypography.Caption,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
             }
 
