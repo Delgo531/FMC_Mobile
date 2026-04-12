@@ -30,6 +30,15 @@ class NewReportViewModel : ViewModel() {
     private val _locationError = MutableStateFlow(false)
     val locationError: StateFlow<Boolean> = _locationError
 
+    private val _colonyError = MutableStateFlow(false)
+    val colonyError: StateFlow<Boolean> = _colonyError
+
+    private val _streetError = MutableStateFlow(false)
+    val streetError: StateFlow<Boolean> = _streetError
+
+    private val _postalCodeError = MutableStateFlow(false)
+    val postalCodeError: StateFlow<Boolean> = _postalCodeError
+
     private val _imagesError = MutableStateFlow(false)
     val imagesError: StateFlow<Boolean> = _imagesError
 
@@ -83,14 +92,21 @@ class NewReportViewModel : ViewModel() {
         _titleError.value       = title.isBlank() || title.length < 5
         _descriptionError.value = description.isBlank() || description.length < 20
         _locationError.value    = municipality.isBlank()
+        _colonyError.value      = colony.isBlank()
+        _streetError.value      = street.isBlank()
+        _postalCodeError.value  = postalCode.isBlank()
         _imagesError.value      = images.isEmpty()
 
-        if (_titleError.value || _descriptionError.value || _locationError.value || _imagesError.value) {
+        if (_titleError.value || _descriptionError.value || _locationError.value ||
+            _colonyError.value || _streetError.value || _postalCodeError.value || _imagesError.value) {
             _createState.value = CreateReportState.Error(
                 when {
                     _titleError.value       -> "El título debe tener al menos 5 caracteres"
                     _descriptionError.value -> "La descripción debe tener al menos 20 caracteres"
-                    _locationError.value    -> "El municipio no puede estar vacío"
+                    _locationError.value    -> "Selecciona un municipio"
+                    _colonyError.value      -> "La colonia no puede estar vacía"
+                    _streetError.value      -> "La calle no puede estar vacía"
+                    _postalCodeError.value  -> "El código postal no puede estar vacío"
                     else                    -> "Debes agregar al menos una foto del problema"
                 }
             )
@@ -153,14 +169,20 @@ class NewReportViewModel : ViewModel() {
     fun clearTitleError()       { _titleError.value = false }
     fun clearDescriptionError() { _descriptionError.value = false }
     fun clearLocationError()    { _locationError.value = false }
+    fun clearColonyError()      { _colonyError.value = false }
+    fun clearStreetError()      { _streetError.value = false }
+    fun clearPostalCodeError()  { _postalCodeError.value = false }
     fun clearImagesError()      { _imagesError.value = false }
 
     fun resetState() {
         _createState.value = CreateReportState.Idle
-        _titleError.value = false
+        _titleError.value      = false
         _descriptionError.value = false
-        _locationError.value = false
-        _imagesError.value = false
+        _locationError.value   = false
+        _colonyError.value     = false
+        _streetError.value     = false
+        _postalCodeError.value = false
+        _imagesError.value     = false
         gpsLatitude  = BigDecimal.ZERO
         gpsLongitude = BigDecimal.ZERO
     }

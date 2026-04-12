@@ -56,6 +56,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
+import mx.edu.utez.fmc_mobile.ui.components.DropDownField
 import mx.edu.utez.fmc_mobile.ui.components.LabelBadge
 import mx.edu.utez.fmc_mobile.ui.components.PhotoPicker
 import mx.edu.utez.fmc_mobile.ui.components.PrimaryButton
@@ -66,6 +67,7 @@ import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.Surface
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
+import mx.edu.utez.fmc_mobile.utils.Constants
 
 @Composable
 fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel = viewModel()) {
@@ -74,40 +76,25 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
-    // Campos de ubicación (solo lectura, se llenan con GPS)
+    // Campos de ubicación — se auto-rellenan con GPS pero el usuario puede editarlos
     var gpsMunicipality by remember { mutableStateOf("") }
-    var gpsColony by remember { mutableStateOf("") }
-    var gpsStreet by remember { mutableStateOf("") }
-    var gpsPostalCode by remember { mutableStateOf("") }
+    var gpsColony       by remember { mutableStateOf("") }
+    var gpsStreet       by remember { mutableStateOf("") }
+    var gpsPostalCode   by remember { mutableStateOf("") }
 
-    // Detalles adicionales de ubicación (opcional, editable)
+    // Detalles adicionales de ubicación (opcional)
     var locationDetails by remember { mutableStateOf("") }
 
-    val createState by viewModel.createState.collectAsState()
-    val locationState by viewModel.locationState.collectAsState()
-    val titleError by viewModel.titleError.collectAsState()
+    val createState    by viewModel.createState.collectAsState()
+    val locationState  by viewModel.locationState.collectAsState()
+    val titleError     by viewModel.titleError.collectAsState()
     val descriptionError by viewModel.descriptionError.collectAsState()
-    val locationError by viewModel.locationError.collectAsState()
-    val imagesError by viewModel.imagesError.collectAsState()
+    val locationError  by viewModel.locationError.collectAsState()
+    val colonyError    by viewModel.colonyError.collectAsState()
+    val streetError    by viewModel.streetError.collectAsState()
+    val postalCodeError by viewModel.postalCodeError.collectAsState()
+    val imagesError    by viewModel.imagesError.collectAsState()
     val context = LocalContext.current
-
-    // Cuando el GPS obtiene la dirección, rellena los campos y limpia el error de ubicación
-    LaunchedEffect(locationState) {
-        if (locationState is LocationFetchState.Success) {
-            val ls = locationState as LocationFetchState.Success
-            gpsMunicipality = ls.municipality
-            gpsColony = ls.colony
-            gpsStreet = ls.street
-            gpsPostalCode = ls.postalCode
-            viewModel.clearLocationError()
-        }
-    }
-
-    LaunchedEffect(createState) {
-        if (createState is CreateReportState.Success) {
-            showBottomSheet = true
-        }
-    }
 
     // Lanzador de permisos de ubicación
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -115,11 +102,43 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
     ) { permissions ->
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
                 || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (granted) {
-            viewModel.fetchLocation(context)
-        } else {
-            viewModel.resetLocationState()
+        if (granted) viewModel.fetchLocation(context)
+        else viewModel.resetLocationState()
+    }
+
+    // Auto-carga de ubicación al abrir la pantalla
+    LaunchedEffect(Unit) {
+        locationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
+
+    // Cuando el GPS obtiene la dirección: auto-rellena los campos y limpia errores
+    LaunchedEffect(locationState) {
+        if (locationState is LocationFetchState.Success) {
+            val ls = locationState as LocationFetchState.Success
+            // Intenta hacer match del municipio con la lista oficial
+            val matched = Constants.municipiosMorelos.firstOrNull { municipio ->
+                municipio.equals(ls.municipality, ignoreCase = true) ||
+                ls.municipality.contains(municipio, ignoreCase = true) ||
+                municipio.contains(ls.municipality, ignoreCase = true)
+            } ?: ls.municipality
+            gpsMunicipality = matched
+            gpsColony     = ls.colony
+            gpsStreet     = ls.street
+            gpsPostalCode = ls.postalCode
+            viewModel.clearLocationError()
+            viewModel.clearColonyError()
+            viewModel.clearStreetError()
+            viewModel.clearPostalCodeError()
         }
+    }
+
+    LaunchedEffect(createState) {
+        if (createState is CreateReportState.Success) showBottomSheet = true
     }
 
     Scaffold(
@@ -142,7 +161,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            LabelBadge(label = "Fotos", badgeText = "Max. 3")
+            LabelBadge(label = "Fotos *", badgeText = "Max. 3")
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -169,6 +188,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             Spacer(modifier = Modifier.height(25.dp))
 
+            // ── Título ────────────────────────────────────────────────────────
             TxtField(
                 value = title,
                 onValueChange = {
@@ -179,16 +199,13 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 placeHolder = "Ej. Bache en avenida principal",
                 errorMessage = if (titleError) "" else null,
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Title,
-                        contentDescription = null,
-                        tint = Primary
-                    )
+                    Icon(imageVector = Icons.Default.Title, contentDescription = null, tint = Primary)
                 }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // ── Descripción ───────────────────────────────────────────────────
             TxtField(
                 value = description,
                 onValueChange = {
@@ -199,87 +216,81 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 placeHolder = "Describe el problema con detalle",
                 errorMessage = if (descriptionError) "" else null,
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Description,
-                        contentDescription = null,
-                        tint = Primary
-                    )
+                    Icon(imageVector = Icons.Default.Description, contentDescription = null, tint = Primary)
                 }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── Sección de ubicación ───────────────────────────────────────
-
-            TxtField(
-                value = gpsMunicipality,
-                onValueChange = {
-                    gpsMunicipality = it
-                    if (it.isNotBlank()) viewModel.clearLocationError()
-                },
+            // ── Municipio (dropdown con lista oficial) ────────────────────────
+            DropDownField(
                 label = "Municipio *",
-                placeHolder = "Ej. Cuernavaca",
+                options = Constants.municipiosMorelos,
+                selectedOption = gpsMunicipality,
+                onOptionSelected = {
+                    gpsMunicipality = it
+                    viewModel.clearLocationError()
+                },
                 errorMessage = if (locationError) "" else null,
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.LocationCity,
-                        contentDescription = null,
-                        tint = Primary
-                    )
+                    Icon(imageVector = Icons.Default.LocationCity, contentDescription = null, tint = Primary)
                 }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // ── Colonia ───────────────────────────────────────────────────────
             TxtField(
                 value = gpsColony,
-                onValueChange = { gpsColony = it },
-                label = "Colonia",
+                onValueChange = {
+                    gpsColony = it
+                    if (it.isNotBlank()) viewModel.clearColonyError()
+                },
+                label = "Colonia *",
                 placeHolder = "Ej. Centro",
+                errorMessage = if (colonyError) "" else null,
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = null,
-                        tint = Primary
-                    )
+                    Icon(imageVector = Icons.Default.Home, contentDescription = null, tint = Primary)
                 }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // ── Calle ─────────────────────────────────────────────────────────
             TxtField(
                 value = gpsStreet,
-                onValueChange = { gpsStreet = it },
-                label = "Calle",
+                onValueChange = {
+                    gpsStreet = it
+                    if (it.isNotBlank()) viewModel.clearStreetError()
+                },
+                label = "Calle *",
                 placeHolder = "Ej. Av. Morelos 123",
+                errorMessage = if (streetError) "" else null,
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Map,
-                        contentDescription = null,
-                        tint = Primary
-                    )
+                    Icon(imageVector = Icons.Default.Map, contentDescription = null, tint = Primary)
                 }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // ── Código postal ─────────────────────────────────────────────────
             TxtField(
                 value = gpsPostalCode,
-                onValueChange = { gpsPostalCode = it },
-                label = "Código postal",
+                onValueChange = {
+                    gpsPostalCode = it
+                    if (it.isNotBlank()) viewModel.clearPostalCodeError()
+                },
+                label = "Código postal *",
                 placeHolder = "Ej. 62000",
+                errorMessage = if (postalCodeError) "" else null,
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.LocalPostOffice,
-                        contentDescription = null,
-                        tint = Primary
-                    )
+                    Icon(imageVector = Icons.Default.LocalPostOffice, contentDescription = null, tint = Primary)
                 }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Botón "Obtener dirección"
+            // ── Botón GPS ─────────────────────────────────────────────────────
             OutlinedButton(
                 onClick = {
                     locationPermissionLauncher.launch(
@@ -295,27 +306,13 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (locationState is LocationFetchState.Loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = Primary
-                    )
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Primary)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Obteniendo ubicación...",
-                        style = AppTypography.BodySmall
-                    )
+                    Text(text = "Obteniendo ubicación...", style = AppTypography.BodySmall)
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.GpsFixed,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Icon(imageVector = Icons.Default.GpsFixed, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Obtener dirección",
-                        style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold)
-                    )
+                    Text(text = "Actualizar con GPS", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
                 }
             }
 
@@ -344,18 +341,14 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── Detalles adicionales de ubicación (opcional) ───────────────
+            // ── Detalles adicionales (opcional) ───────────────────────────────
             TxtField(
                 value = locationDetails,
                 onValueChange = { locationDetails = it },
                 label = "Detalles de la ubicación (opcional)",
                 placeHolder = "Ej. Frente al parque, entre calles...",
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.EditNote,
-                        contentDescription = null,
-                        tint = Primary
-                    )
+                    Icon(imageVector = Icons.Default.EditNote, contentDescription = null, tint = Primary)
                 }
             )
 
@@ -396,11 +389,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                     }
                 },
                 trailingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = null,
-                        tint = Surface
-                    )
+                    Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Surface)
                 }
             )
 
