@@ -36,13 +36,9 @@ class NewReportViewModel : ViewModel() {
     private val _locationState = MutableStateFlow<LocationFetchState>(LocationFetchState.Idle)
     val locationState: StateFlow<LocationFetchState> = _locationState
 
-    // Datos de ubicación obtenidos por GPS — se usan al enviar el reporte
+    // Solo lat/lng se guardan en el ViewModel; los campos de texto son propiedad de la pantalla
     private var gpsLatitude: BigDecimal = BigDecimal.ZERO
     private var gpsLongitude: BigDecimal = BigDecimal.ZERO
-    private var resolvedMunicipality: String = ""
-    private var gpsStreet: String = ""
-    private var gpsColony: String = ""
-    private var gpsPostalCode: String = ""
 
     /** Obtiene la ubicación GPS y convierte a dirección textual. */
     fun fetchLocation(context: Context) {
@@ -50,12 +46,8 @@ class NewReportViewModel : ViewModel() {
             _locationState.value = LocationFetchState.Loading
             when (val result = LocationHelper.getAddressFromGps(context)) {
                 is LocationResult.Success -> {
-                    gpsLatitude = BigDecimal.valueOf(result.latitude)
+                    gpsLatitude  = BigDecimal.valueOf(result.latitude)
                     gpsLongitude = BigDecimal.valueOf(result.longitude)
-                    resolvedMunicipality = result.municipality
-                    gpsStreet = result.street
-                    gpsColony = result.colony
-                    gpsPostalCode = result.postalCode
                     _locationState.value = LocationFetchState.Success(
                         municipality = result.municipality,
                         colony       = result.colony,
@@ -72,23 +64,25 @@ class NewReportViewModel : ViewModel() {
 
     fun resetLocationState() {
         _locationState.value = LocationFetchState.Idle
-        resolvedMunicipality = ""
-        gpsStreet = ""
-        gpsColony = ""
-        gpsPostalCode = ""
+        gpsLatitude  = BigDecimal.ZERO
+        gpsLongitude = BigDecimal.ZERO
     }
 
     fun createReport(
         context: Context,
         title: String,
         description: String,
+        municipality: String,
+        colony: String,
+        street: String,
+        postalCode: String,
         locationDetails: String,
         images: List<Uri>
     ) {
         // Validar todos los campos a la vez para marcar todos los errores simultáneamente
         _titleError.value       = title.isBlank() || title.length < 5
         _descriptionError.value = description.isBlank() || description.length < 20
-        _locationError.value    = resolvedMunicipality.isBlank()
+        _locationError.value    = municipality.isBlank()
         _imagesError.value      = images.isEmpty()
 
         if (_titleError.value || _descriptionError.value || _locationError.value || _imagesError.value) {
@@ -96,7 +90,7 @@ class NewReportViewModel : ViewModel() {
                 when {
                     _titleError.value       -> "El título debe tener al menos 5 caracteres"
                     _descriptionError.value -> "La descripción debe tener al menos 20 caracteres"
-                    _locationError.value    -> "Debes obtener tu ubicación con el botón de GPS"
+                    _locationError.value    -> "El municipio no puede estar vacío"
                     else                    -> "Debes agregar al menos una foto del problema"
                 }
             )
@@ -119,12 +113,11 @@ class NewReportViewModel : ViewModel() {
 
                 _createState.value = CreateReportState.Loading("Enviando reporte...")
 
-                // Componer la dirección a partir de los campos GPS
                 val addressParts = listOfNotNull(
-                    gpsStreet.takeIf { it.isNotBlank() },
-                    gpsColony.takeIf { it.isNotBlank() },
-                    resolvedMunicipality.takeIf { it.isNotBlank() },
-                    gpsPostalCode.takeIf { it.isNotBlank() }
+                    street.takeIf { it.isNotBlank() },
+                    colony.takeIf { it.isNotBlank() },
+                    municipality.takeIf { it.isNotBlank() },
+                    postalCode.takeIf { it.isNotBlank() }
                 )
                 val address = addressParts.joinToString(", ")
                     .let { if (locationDetails.isNotBlank()) "$it - $locationDetails" else it }
@@ -133,7 +126,7 @@ class NewReportViewModel : ViewModel() {
                     title        = title,
                     description  = description,
                     address      = address,
-                    municipality = resolvedMunicipality,
+                    municipality = municipality,
                     latitude     = gpsLatitude,
                     longitude    = gpsLongitude,
                     photos       = photoUrls.ifEmpty { null }
@@ -168,12 +161,8 @@ class NewReportViewModel : ViewModel() {
         _descriptionError.value = false
         _locationError.value = false
         _imagesError.value = false
-        resolvedMunicipality = ""
-        gpsLatitude = BigDecimal.ZERO
+        gpsLatitude  = BigDecimal.ZERO
         gpsLongitude = BigDecimal.ZERO
-        gpsStreet = ""
-        gpsColony = ""
-        gpsPostalCode = ""
     }
 }
 

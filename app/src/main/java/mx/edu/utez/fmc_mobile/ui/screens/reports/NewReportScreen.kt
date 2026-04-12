@@ -213,10 +213,12 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             TxtField(
                 value = gpsMunicipality,
-                onValueChange = {},
+                onValueChange = {
+                    gpsMunicipality = it
+                    if (it.isNotBlank()) viewModel.clearLocationError()
+                },
                 label = "Municipio *",
-                placeHolder = "—",
-                readOnly = true,
+                placeHolder = "Ej. Cuernavaca",
                 errorMessage = if (locationError) "" else null,
                 leadingIcon = {
                     Icon(
@@ -231,11 +233,9 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             TxtField(
                 value = gpsColony,
-                onValueChange = {},
-                label = "Colonia *",
-                placeHolder = "—",
-                readOnly = true,
-                errorMessage = if (locationError) "" else null,
+                onValueChange = { gpsColony = it },
+                label = "Colonia",
+                placeHolder = "Ej. Centro",
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Home,
@@ -249,11 +249,9 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             TxtField(
                 value = gpsStreet,
-                onValueChange = {},
-                label = "Calle *",
-                placeHolder = "—",
-                readOnly = true,
-                errorMessage = if (locationError) "" else null,
+                onValueChange = { gpsStreet = it },
+                label = "Calle",
+                placeHolder = "Ej. Av. Morelos 123",
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Map,
@@ -267,11 +265,9 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
 
             TxtField(
                 value = gpsPostalCode,
-                onValueChange = {},
-                label = "Código postal *",
-                placeHolder = "—",
-                readOnly = true,
-                errorMessage = if (locationError) "" else null,
+                onValueChange = { gpsPostalCode = it },
+                label = "Código postal",
+                placeHolder = "Ej. 62000",
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.LocalPostOffice,
@@ -392,7 +388,11 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                 text = if (createState is CreateReportState.Loading) "Enviando..." else "Enviar Reporte",
                 onClick = {
                     if (createState !is CreateReportState.Loading) {
-                        viewModel.createReport(context, title, description, locationDetails, images)
+                        viewModel.createReport(
+                            context, title, description,
+                            gpsMunicipality, gpsColony, gpsStreet, gpsPostalCode,
+                            locationDetails, images
+                        )
                     }
                 },
                 trailingIcon = {
