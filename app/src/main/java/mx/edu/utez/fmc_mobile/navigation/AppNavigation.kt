@@ -1,7 +1,6 @@
 package mx.edu.utez.fmc_mobile.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -31,17 +30,9 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val recoveryViewModel: RecoveryViewModel = viewModel()
 
+
     // Start on HOME if already logged in, LOGIN otherwise
     val startDestination = if (SessionManager.isLoggedIn()) Routes.HOME else Routes.LOGIN
-
-    // Cierra sesión y navega al login cuando el token expira (401)
-    LaunchedEffect(Unit) {
-        SessionManager.sessionExpiredEvent.collect {
-            navController.navigate(Routes.LOGIN) {
-                popUpTo(0) { inclusive = true }
-            }
-        }
-    }
 
     NavHost(
         navController = navController,

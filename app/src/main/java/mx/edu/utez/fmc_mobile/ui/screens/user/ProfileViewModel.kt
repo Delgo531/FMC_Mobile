@@ -74,6 +74,7 @@ class ProfileViewModel : ViewModel() {
             _updateState.value = UpdateProfileState.Loading
             try {
                 val userId = SessionManager.getUserId()
+                val oldUsername = SessionManager.getUsername()
                 val request = UpdateUserRequest(
                     username = username,
                     email = email,
@@ -92,7 +93,14 @@ class ProfileViewModel : ViewModel() {
                         isVolunteer = SessionManager.isVolunteer()
                     )
                     refreshProfile()
-                    _updateState.value = UpdateProfileState.Success
+                    // Si el username cambió, el JWT viejo ya no sirve (el backend no devuelve uno nuevo).
+                    // Avisar al usuario que debe volver a iniciar sesión.
+                    if (!oldUsername.equals(username, ignoreCase = true)) {
+                        SessionManager.clearSession()
+                        _updateState.value = UpdateProfileState.RequiresRelogin
+                    } else {
+                        _updateState.value = UpdateProfileState.Success
+                    }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     val errorMessage = try {
@@ -154,6 +162,7 @@ sealed class UpdateProfileState {
     object Idle : UpdateProfileState()
     object Loading : UpdateProfileState()
     object Success : UpdateProfileState()
+    object RequiresRelogin : UpdateProfileState()
     data class Error(val message: String) : UpdateProfileState()
 }
 

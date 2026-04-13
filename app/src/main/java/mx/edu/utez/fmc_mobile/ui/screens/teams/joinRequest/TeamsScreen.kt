@@ -268,17 +268,17 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Whitelist explícita: solo estados activos en Pendientes.
-                        // Reportes con tiempo agotado vuelven a REGISTERED con un
-                        // assignmentStatus que no es PENDING_VOTE ni ACCEPTED →
-                        // quedan fuera de ambas pestañas y desaparecen de la UI.
+                        // Whitelist explícita: estados activos en Pendientes, terminales en Resueltos.
                         val filteredReports = if (selectedTab == 0) {
                             assignedReports.filter {
                                 it.assignmentStatus.equals("PENDING_VOTE", ignoreCase = true) ||
-                                it.assignmentStatus.equals("ACCEPTED", ignoreCase = true)
+                                it.assignmentStatus.equals("ACCEPTED", ignoreCase = true) ||
+                                it.assignmentStatus.equals("ON_THE_WAY", ignoreCase = true) ||
+                                it.assignmentStatus.equals("IN_PROGRESS", ignoreCase = true)
                             }
                         } else {
                             assignedReports.filter {
+                                it.assignmentStatus.equals("CLOSED", ignoreCase = true) ||
                                 it.assignmentStatus.equals("COMPLETED", ignoreCase = true) ||
                                 it.assignmentStatus.equals("REJECTED", ignoreCase = true)
                             }

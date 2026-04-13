@@ -25,12 +25,7 @@ object  RetrofitClient {
         } else {
             chain.request()
         }
-        val response = chain.proceed(request)
-        // Si el token expiró (401) y había sesión activa, cerrar sesión automáticamente
-        if (response.code == 401 && token != null) {
-            SessionManager.onSessionExpired()
-        }
-        response
+        chain.proceed(request)
     }
 
     private val client = OkHttpClient.Builder()

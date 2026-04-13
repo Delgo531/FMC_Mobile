@@ -3,7 +3,6 @@ package mx.edu.utez.fmc_mobile.utils
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
-import kotlinx.coroutines.flow.MutableSharedFlow
 import org.json.JSONObject
 
 object SessionManager {
@@ -93,13 +92,5 @@ object SessionManager {
 
     fun clearSession() {
         prefs.edit().clear().apply()
-    }
-
-    /** Emite un evento cuando el token expira (401). Observado por AppNavigation para redirigir al login. */
-    val sessionExpiredEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-
-    fun onSessionExpired() {
-        clearSession()
-        sessionExpiredEvent.tryEmit(Unit)
     }
 }

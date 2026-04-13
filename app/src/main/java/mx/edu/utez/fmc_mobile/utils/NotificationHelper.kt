@@ -37,6 +37,8 @@ object NotificationHelper {
         "NEW_VOLUNTEER"        -> "Nuevo Voluntario"
         "LEADER_LEFT"          -> "Sin Líder de Cuadrilla"
         "DUPLICATE_REPORT"     -> "Reporte Duplicado"
+        "SQUAD_ASSIGNED"       -> "Asignado a Cuadrilla"
+        "MEMBER_ADDED"         -> "Agregado a Cuadrilla"
         else -> type.replace("_", " ")
             .lowercase()
             .replaceFirstChar { it.uppercase() }

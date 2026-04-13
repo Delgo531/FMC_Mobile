@@ -246,6 +246,15 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun leaveSquad(password: String) {
+        // Validación: no permitir salir si hay denuncias pendientes de resolver
+        val hasPending = _assignedReports.value.any {
+            val s = it.assignmentStatus.uppercase()
+            s == "PENDING_VOTE" || s == "ACCEPTED" || s == "ON_THE_WAY" || s == "IN_PROGRESS"
+        }
+        if (hasPending) {
+            _errorMessage.value = "No puedes salir de la cuadrilla mientras tienes denuncias pendientes de resolver."
+            return
+        }
         viewModelScope.launch {
             _isLoading.value = true
             try {

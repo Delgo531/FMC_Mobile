@@ -317,25 +317,23 @@ fun AssignedReportCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (isLeader) {
-                        OutlinedButton(
-                            onClick = { showRejectDialog = true },
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, TextSecondary),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Surface, contentColor = TextSecondary),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(imageVector = Icons.Filled.ThumbDown, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = "Rechazar", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
-                        }
+                    OutlinedButton(
+                        onClick = { showRejectDialog = true },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, TextSecondary),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Surface, contentColor = TextSecondary),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(imageVector = Icons.Filled.ThumbDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(text = "Rechazar", style = AppTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold))
                     }
 
                     Button(
                         onClick = onAccept,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                        modifier = if (isLeader) Modifier.weight(1f) else Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1f)
                     ) {
                         Icon(imageVector = Icons.Filled.ThumbUp, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -354,7 +352,10 @@ fun AssignedReportCard(
                         },
                         text = {
                             Text(
-                                text = "Esta acción rechazará el reporte \"$title\". ¿Estás seguro de que deseas continuar?",
+                                text = if (isLeader)
+                                    "Como líder, tu voto rechazará este reporte inmediatamente. ¿Estás seguro de que deseas rechazar \"$title\"?"
+                                else
+                                    "Tu voto será registrado en contra de este reporte. Si suficientes miembros votan en contra, el reporte será rechazado. ¿Continuar?",
                                 style = AppTypography.BodySmall
                             )
                         },

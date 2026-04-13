@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.R
+import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
 import mx.edu.utez.fmc_mobile.ui.components.DropDownField
 import mx.edu.utez.fmc_mobile.ui.components.PasswordTxtField
@@ -62,12 +63,15 @@ fun UpdateProfileScreen(navController: NavController, viewModel: ProfileViewMode
     var password by remember { mutableStateOf("") }
     var municipio by remember { mutableStateOf(SessionManager.getMunicipality()) }
     var showBottomSheet by remember { mutableStateOf(false) }
+    var showReloginSheet by remember { mutableStateOf(false) }
 
     val updateState by viewModel.updateState.collectAsState()
 
     LaunchedEffect(updateState) {
-        if (updateState is UpdateProfileState.Success) {
-            showBottomSheet = true
+        when (updateState) {
+            is UpdateProfileState.Success -> showBottomSheet = true
+            is UpdateProfileState.RequiresRelogin -> showReloginSheet = true
+            else -> {}
         }
     }
 
@@ -220,6 +224,35 @@ fun UpdateProfileScreen(navController: NavController, viewModel: ProfileViewMode
             onDismiss = {
                 showBottomSheet = false
                 viewModel.resetUpdateState()
+            }
+        )
+    }
+    if (showReloginSheet) {
+        SuccessBottomSheet(
+            title = "Nombre de usuario actualizado",
+            message = "Tu nombre de usuario ha cambiado exitosamente. Por seguridad, debes iniciar sesión nuevamente con tus nuevas credenciales.",
+            buttonText = "Ir al inicio de sesión",
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.padding(14.dp)
+                )
+            },
+            onButtonClick = {
+                showReloginSheet = false
+                viewModel.resetUpdateState()
+                navController.navigate(Routes.LOGIN) {
+                    popUpTo(0) { inclusive = true }
+                }
+            },
+            onDismiss = {
+                showReloginSheet = false
+                viewModel.resetUpdateState()
+                navController.navigate(Routes.LOGIN) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
         )
     }
