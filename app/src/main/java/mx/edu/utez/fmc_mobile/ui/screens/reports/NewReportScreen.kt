@@ -241,7 +241,7 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
                     if (it.isNotBlank()) viewModel.clearColonyError()
                 },
                 label = "Colonia *",
-                placeHolder = "Ej. Centro",
+                placeHolder = "Escribe tu colonia",
                 errorMessage = if (colonyError) "" else null,
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Home, contentDescription = null, tint = Primary)

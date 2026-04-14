@@ -47,6 +47,10 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
     private val _actionSuccess = MutableStateFlow<String?>(null)
     val actionSuccess: StateFlow<String?> = _actionSuccess
 
+    // Error específico del flujo "salir de cuadrilla" — se muestra dentro del dialog
+    private val _leaveSquadError = MutableStateFlow<String?>(null)
+    val leaveSquadError: StateFlow<String?> = _leaveSquadError
+
     private val _hasPendingLeaderApp = MutableStateFlow(false)
     val hasPendingLeaderApp: StateFlow<Boolean> = _hasPendingLeaderApp
 
@@ -246,40 +250,48 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun leaveSquad(password: String) {
-        // Validación: no permitir salir si hay denuncias pendientes de resolver
+        _leaveSquadError.value = null
+
+        // Validación local: no permitir salir si hay denuncias activas en la cuadrilla
         val hasPending = _assignedReports.value.any {
             val s = it.assignmentStatus.uppercase()
             s == "PENDING_VOTE" || s == "ACCEPTED" || s == "ON_THE_WAY" || s == "IN_PROGRESS"
         }
         if (hasPending) {
-            _errorMessage.value = "No puedes salir de la cuadrilla mientras tienes denuncias pendientes de resolver."
+            _leaveSquadError.value =
+                "No puedes salir mientras la cuadrilla tiene denuncias pendientes de resolver."
             return
         }
+
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 val response = squadRepository.leaveSquad(LeaveSquadRequest(password))
                 if (response.isSuccessful) {
                     SessionManager.setPendingApplication(false)
+                    SessionManager.setPendingLeaderApplication(false)
                     _userStatus.value = "NONE"
                     _squadInfo.value = null
                     _assignedReports.value = emptyList()
-                    _actionSuccess.value = "Has abandonado la cuadrilla"
+                    _leaveSquadError.value = null
+                    _actionSuccess.value = "leave_success"   // señal para cerrar el dialog
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    _errorMessage.value = try {
+                    _leaveSquadError.value = try {
                         org.json.JSONObject(errorBody ?: "").getString("message")
                     } catch (_: Exception) {
-                        "Error al salir de la cuadrilla"
+                        "Contraseña incorrecta o error al salir de la cuadrilla"
                     }
                 }
             } catch (e: Exception) {
-                _errorMessage.value = e.message
+                _leaveSquadError.value = e.message ?: "Error de conexión"
             } finally {
                 _isLoading.value = false
             }
         }
     }
+
+    fun clearLeaveSquadError() { _leaveSquadError.value = null }
 
     fun voteReport(assignmentId: Long, vote: String) {
         viewModelScope.launch {

@@ -48,6 +48,7 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
     val actionSuccess by viewModel.actionSuccess.collectAsState()
     val voteStatusMap by viewModel.voteStatusMap.collectAsState()
     val hasPendingLeaderApp by viewModel.hasPendingLeaderApp.collectAsState()
+    val leaveSquadError by viewModel.leaveSquadError.collectAsState()
 
     var showJoinSheet by remember { mutableStateOf(false) }
     var showCancelSheet by remember { mutableStateOf(false) }
@@ -73,9 +74,12 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
         }
     }
 
-    // Show snackbar for messages
     LaunchedEffect(actionSuccess) {
-        if (actionSuccess != null) {
+        if (actionSuccess == "leave_success") {
+            showLeaveSheet = false
+            leavePassword = ""
+            viewModel.clearMessages()
+        } else if (actionSuccess != null) {
             viewModel.clearMessages()
         }
     }
@@ -372,45 +376,70 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
 
     if (showLeaveSheet) {
         AlertDialog(
-            onDismissRequest = { 
-                showLeaveSheet = false
-                leavePassword = "" 
+            onDismissRequest = {
+                if (!isLoading) {
+                    showLeaveSheet = false
+                    leavePassword = ""
+                    viewModel.clearLeaveSquadError()
+                }
             },
             title = {
-                Text(text = "¿Deseas salir de la cuadrilla?", style = AppTypography.Body.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    text = "¿Deseas salir de la cuadrilla?",
+                    style = AppTypography.Body.copy(fontWeight = FontWeight.Bold)
+                )
             },
             text = {
                 Column {
-                    Text(text = "Ingresa tu contraseña para confirmar que deseas abandonar la cuadrilla.", style = AppTypography.BodySmall)
+                    Text(
+                        text = "Ingresa tu contraseña para confirmar que deseas abandonar la cuadrilla.",
+                        style = AppTypography.BodySmall
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = leavePassword,
-                        onValueChange = { leavePassword = it },
+                        onValueChange = {
+                            leavePassword = it
+                            viewModel.clearLeaveSquadError()
+                        },
                         label = { Text("Contraseña") },
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        isError = leaveSquadError != null
                     )
+                    if (leaveSquadError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = leaveSquadError ?: "",
+                            color = Color(0xFFC62828),
+                            style = AppTypography.Caption
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
-                    onClick = {
-                        viewModel.leaveSquad(leavePassword)
-                        showLeaveSheet = false
-                        leavePassword = ""
-                    },
-                    enabled = leavePassword.isNotBlank()
+                    onClick = { viewModel.leaveSquad(leavePassword) },
+                    enabled = leavePassword.isNotBlank() && !isLoading
                 ) {
-                    Text("Abandonar", color = Color(0xFFC62828))
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Abandonar", color = Color(0xFFC62828))
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
-                    showLeaveSheet = false 
-                    leavePassword = ""
-                }) {
+                TextButton(
+                    onClick = {
+                        showLeaveSheet = false
+                        leavePassword = ""
+                        viewModel.clearLeaveSquadError()
+                    },
+                    enabled = !isLoading
+                ) {
                     Text("Cancelar", color = TextSecondary)
                 }
             }
