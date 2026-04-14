@@ -12,71 +12,29 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.coroutines.resume
+import mx.edu.utez.fmc_mobile.utils.Constants
 
 object LocationHelper {
 
-    /**
-     * Mapa de keyword (minúsculas, con/sin acentos) → nombre canónico del municipio.
-     * Se usa para:
-     *  - validar que la dirección está en Morelos (isInMorelos)
-     *  - extraer el municipio correcto para enviarlo al API (extractMunicipality)
-     */
-    private val municipalityMap: Map<String, String> = mapOf(
-        "cuernavaca"            to "Cuernavaca",
-        "jiutepec"              to "Jiutepec",
-        "temixco"               to "Temixco",
-        "xochitepec"            to "Xochitepec",
-        "emiliano zapata"       to "Emiliano Zapata",
-        "tlaltizapán"           to "Tlaltizapán de Rayón",
-        "tlaltizapan"           to "Tlaltizapán de Rayón",
-        "tlaquiltenango"        to "Tlaquiltenango",
-        "jojutla"               to "Jojutla",
-        "puente de ixtla"       to "Puente de Ixtla",
-        "yautepec"              to "Yautepec",
-        "cuautla"               to "Cuautla",
-        "yecapixtla"            to "Yecapixtla",
-        "ayala"                 to "Ayala",
-        "tepalcingo"            to "Tepalcingo",
-        "axochiapan"            to "Axochiapan",
-        "amacuzac"              to "Amacuzac",
-        "coatlán del río"       to "Coatlán del Río",
-        "coatlan del rio"       to "Coatlán del Río",
-        "mazatepec"             to "Mazatepec",
-        "tetecala"              to "Tetecala",
-        "miacatlán"             to "Miacatlán",
-        "miacatlan"             to "Miacatlán",
-        "jonacatepec"           to "Jonacatepec de Leandro Valle",
-        "tepoztlán"             to "Tepoztlán",
-        "tepoztlan"             to "Tepoztlán",
-        "totolapan"             to "Totolapan",
-        "atlatlahucan"          to "Atlatlahucan",
-        "ocuituco"              to "Ocuituco",
-        "tetela del volcán"     to "Tetela del Volcán",
-        "tetela del volcan"     to "Tetela del Volcán",
-        "zacualpan de amilpas"  to "Zacualpan de Amilpas",
-        "huitzilac"             to "Huitzilac",
-        "temoac"                to "Temoac",
-        "tlalnepantla"          to "Tlalnepantla"
-    )
-
-    /** true si la dirección contiene el estado o algún municipio de Morelos. */
+    /** true si la dirección contiene algún municipio de Morelos o el estado. */
     fun isInMorelos(address: String): Boolean {
         val lower = address.lowercase()
         return lower.contains("morelos")
             || lower.contains(", mor.")
             || lower.contains(" mor.")
-            || municipalityMap.keys.any { lower.contains(it) }
+            || Constants.municipiosMorelos.any { lower.contains(it.lowercase()) }
     }
 
     /**
-     * Extrae el nombre canónico del municipio buscando en el texto de la dirección.
-     * Devuelve null si no coincide con ningún municipio conocido.
+     * Busca en el texto de la dirección un municipio de la lista oficial.
+     * Devuelve el nombre exacto tal como aparece en Constants.municipiosMorelos,
+     * o null si no hay coincidencia.
      */
     fun extractMunicipality(address: String): String? {
         val lower = address.lowercase()
-        return municipalityMap.entries
-            .firstOrNull { lower.contains(it.key) }
-            ?.value
+        return Constants.municipiosMorelos.firstOrNull { municipio ->
+            lower.contains(municipio.lowercase())
+        }
     }
 
     /**
@@ -158,21 +116,32 @@ object LocationHelper {
 
             val fullAddress = androidAddress.getAddressLine(0) ?: return@withContext null
 
-            // En México el Geocoder devuelve el municipio en subAdminArea o locality.
-            // Si ninguno coincide con la lista, se extrae del texto completo.
-            val municipality =
-                androidAddress.subAdminArea?.let { extractMunicipality(it) }
-                    ?: androidAddress.locality?.let { extractMunicipality(it) }
-                    ?: extractMunicipality(fullAddress)
-                    ?: "Morelos"   // fallback genérico si el geocoder no tiene datos precisos
+            // Candidatos del Geocoder para el municipio (en orden de fiabilidad en México)
+            val candidates = listOfNotNull(
+                androidAddress.subAdminArea,  // suele ser el municipio en México
+                androidAddress.locality,       // a veces el municipio, a veces la ciudad
+                androidAddress.subLocality     // raramente, pero por si acaso
+            )
+            // Busca el primer candidato que coincida con la lista oficial de municipios
+            val municipality = candidates
+                .firstNotNullOfOrNull { candidate ->
+                    Constants.municipiosMorelos.firstOrNull { municipio ->
+                        municipio.equals(candidate, ignoreCase = true) ||
+                        candidate.contains(municipio, ignoreCase = true) ||
+                        municipio.contains(candidate, ignoreCase = true)
+                    }
+                }
+                ?: extractMunicipality(fullAddress)  // búsqueda en texto completo como último recurso
+                ?: ""                                 // vacío → el usuario elige del dropdown
 
             val street = buildString {
                 androidAddress.thoroughfare?.let { append(it) }
                 androidAddress.subThoroughfare?.let { append(" $it") }
             }.trim()
 
-            val colony = androidAddress.subLocality ?: ""
-            val postalCode = androidAddress.postalCode ?: ""
+            // subLocality es el campo correcto para colonia/barrio en México
+            val colony     = androidAddress.subLocality ?: ""
+            val postalCode = androidAddress.postalCode  ?: ""
 
             AddressInfo(fullAddress, municipality, street, colony, postalCode)
         }

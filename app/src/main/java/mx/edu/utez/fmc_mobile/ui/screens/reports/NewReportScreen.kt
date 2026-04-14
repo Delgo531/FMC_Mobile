@@ -120,16 +120,10 @@ fun NewReportScreen(navController: NavController, viewModel: NewReportViewModel 
     LaunchedEffect(locationState) {
         if (locationState is LocationFetchState.Success) {
             val ls = locationState as LocationFetchState.Success
-            // Intenta hacer match del municipio con la lista oficial
-            val matched = Constants.municipiosMorelos.firstOrNull { municipio ->
-                municipio.equals(ls.municipality, ignoreCase = true) ||
-                ls.municipality.contains(municipio, ignoreCase = true) ||
-                municipio.contains(ls.municipality, ignoreCase = true)
-            } ?: ls.municipality
-            gpsMunicipality = matched
-            gpsColony     = ls.colony
-            gpsStreet     = ls.street
-            gpsPostalCode = ls.postalCode
+            gpsMunicipality = ls.municipality  // ya viene mapeado a la lista oficial
+            gpsColony       = ls.colony
+            gpsStreet       = ls.street
+            gpsPostalCode   = ls.postalCode
             viewModel.clearLocationError()
             viewModel.clearColonyError()
             viewModel.clearStreetError()
