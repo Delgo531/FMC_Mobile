@@ -63,13 +63,26 @@ class LoginViewModel : ViewModel() {
                         _loginState.value = LoginState.Error("Respuesta vacía del servidor")
                     }
                 } else {
-                    val errorBody = response.errorBody()?.string()
-                    val errorMessage = try {
-                        org.json.JSONObject(errorBody ?: "").getString("message")
-                    } catch (e: Exception) {
-                        "Usuario o contraseña incorrectos"
+                    val code = response.code()
+                    val errorBodyString = response.errorBody()?.string() ?: ""
+                    
+                    if (code == 403) {
+                        // El backend respondió 403 Forbidden vacío; es el comportamiento base de Spring 
+                        // cuando el usuario no pasa la pre-autenticación (cuenta inactiva/bloqueada)
+                        _loginState.value = LoginState.Error("El usuario se encuentra inactivo")
+                    } else {
+                        var errorMessage = "Usuario o contraseña incorrectos"
+                        try {
+                            val json = org.json.JSONObject(errorBodyString)
+                            val msg = json.optString("message", "")
+                            if (msg.isNotEmpty()) {
+                                errorMessage = msg
+                            }
+                        } catch (e: Exception) {
+                            // Si no hay JSON válido, se queda el mensaje por defecto
+                        }
+                        _loginState.value = LoginState.Error(errorMessage)
                     }
-                    _loginState.value = LoginState.Error(errorMessage)
                 }
             } catch (e: Exception) {
                 _loginState.value = LoginState.Error(e.message ?: "Error desconocido")

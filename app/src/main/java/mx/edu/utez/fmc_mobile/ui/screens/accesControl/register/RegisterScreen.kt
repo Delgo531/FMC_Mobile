@@ -192,7 +192,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
 
             InfoCard(
                 title = "Pautas para contraseña:",
-                message = "La contraseña debe estar conformada por 8 caracteres, mayusuculas, minusculas, numeros y simbolos especiales.",
+                message = "La contraseña debe estar conformada por 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos especiales.",
                 icon = {
                     Icon(
                         imageVector = Icons.Default.Lock,
