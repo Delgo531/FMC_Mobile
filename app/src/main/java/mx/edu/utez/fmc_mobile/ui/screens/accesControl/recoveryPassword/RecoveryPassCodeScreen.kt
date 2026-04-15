@@ -1,7 +1,6 @@
 package mx.edu.utez.fmc_mobile.ui.screens.accesControl.recoveryPassword
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,8 +14,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,7 +39,6 @@ import androidx.navigation.compose.rememberNavController
 import mx.edu.utez.fmc_mobile.R
 import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
-import mx.edu.utez.fmc_mobile.ui.components.ClickableText
 import mx.edu.utez.fmc_mobile.ui.components.OtpField
 import mx.edu.utez.fmc_mobile.ui.components.PrimaryButton
 import mx.edu.utez.fmc_mobile.ui.components.StepIndicator
@@ -54,12 +54,36 @@ fun RecoveryPassCodeScreen(
 ) {
     val recoveryState by viewModel.recoveryState.collectAsState()
     var otpValue by remember { mutableStateOf("") }
+    var showBlockedDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(recoveryState) {
         if (recoveryState is RecoveryState.CodeVerified) {
             viewModel.resetState()
             navController.navigate(Routes.PASSRECOVERYPASS)
         }
+
+        if (recoveryState is RecoveryState.IdentityVerificationFailed) {
+            showBlockedDialog = true
+            viewModel.resetState()
+        }
+    }
+
+    if (showBlockedDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("No se pudo verificar su identidad") },
+            text = { Text("Has superado el numero maximo de intentos permitidos. Por seguridad, vuelve a iniciar sesion.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBlockedDialog = false
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                }) {
+                    Text("Ir a login")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -138,19 +162,6 @@ fun RecoveryPassCodeScreen(
                 else -> {}
             }
 
-            Spacer(modifier = Modifier.height(15.dp))
-
-            Row {
-                Text(
-                    text = "¿No recibiste el código? ",
-                    style = AppTypography.Body.copy(fontWeight = FontWeight.Normal),
-                    color = TextPrimary
-                )
-                ClickableText(
-                    text = "Reenviar código",
-                    onClick = { viewModel.forgotPassword(viewModel.savedEmail) }
-                )
-            }
 
             Spacer(modifier = Modifier.height(32.dp))
 

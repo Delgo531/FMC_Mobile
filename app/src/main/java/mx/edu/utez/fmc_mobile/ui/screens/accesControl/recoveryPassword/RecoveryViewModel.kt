@@ -9,6 +9,7 @@ import mx.edu.utez.fmc_mobile.data.remote.dto.request.ForgotPasswordRequest
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.ResetPasswordRequest
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.VerifyResetCodeRequest
 import mx.edu.utez.fmc_mobile.data.repository.AuthRepository
+import mx.edu.utez.fmc_mobile.utils.PasswordValidator
 
 class RecoveryViewModel : ViewModel() {
 
@@ -70,12 +71,19 @@ class RecoveryViewModel : ViewModel() {
                     _recoveryState.value = RecoveryState.CodeVerified
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    val errorMessage = try {
-                        org.json.JSONObject(errorBody ?: "").getString("message")
+                    try {
+                        val errorJson = org.json.JSONObject(errorBody ?: "")
+                        val errorCode = errorJson.optString("errorCode")
+                        val errorMessage = errorJson.optString("message", "Código incorrecto")
+
+                        if (errorCode == "IDENTITY_VERIFICATION_FAILED") {
+                            _recoveryState.value = RecoveryState.IdentityVerificationFailed(errorMessage)
+                        } else {
+                            _recoveryState.value = RecoveryState.Error(errorMessage)
+                        }
                     } catch (e: Exception) {
-                        "Código incorrecto"
+                        _recoveryState.value = RecoveryState.Error("Código incorrecto")
                     }
-                    _recoveryState.value = RecoveryState.Error(errorMessage)
                 }
             } catch (e: Exception) {
                 _recoveryState.value = RecoveryState.Error(e.message ?: "Error desconocido")
@@ -84,10 +92,16 @@ class RecoveryViewModel : ViewModel() {
     }
 
     fun resetPassword(newPassword: String, confirmPassword: String) {
-        if (newPassword.isBlank() || newPassword.length < 8) {
-            _recoveryState.value = RecoveryState.Error("La contraseña debe tener mínimo 8 caracteres")
+        if (newPassword.isBlank()) {
+            _recoveryState.value = RecoveryState.Error("Ingresa la nueva contrasena")
             return
         }
+
+        if (!PasswordValidator.evaluate(newPassword).isValid) {
+            _recoveryState.value = RecoveryState.Error("La contrasena debe tener minimo 8 caracteres, mayuscula, minuscula y un caracter especial.")
+            return
+        }
+
         if (newPassword != confirmPassword) {
             _recoveryState.value = RecoveryState.Error("Las contraseñas no coinciden")
             return
@@ -131,5 +145,6 @@ sealed class RecoveryState {
     object EmailSent : RecoveryState()
     object CodeVerified : RecoveryState()
     object PasswordReset : RecoveryState()
+    data class IdentityVerificationFailed(val message: String) : RecoveryState()
     data class Error(val message: String) : RecoveryState()
 }

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.RegisterRequest
 import mx.edu.utez.fmc_mobile.data.repository.AuthRepository
+import mx.edu.utez.fmc_mobile.utils.PasswordValidator
 
 class RegisterViewModel : ViewModel() {
 
@@ -35,8 +36,8 @@ class RegisterViewModel : ViewModel() {
     ): Boolean {
         _usernameError.value = username.isBlank()
         _emailError.value = email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-        val passwordRegex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}\$".toRegex()
-        _passwordError.value = password.isBlank() || !password.matches(passwordRegex)
+        val passwordValidation = PasswordValidator.evaluate(password)
+        _passwordError.value = password.isBlank() || !passwordValidation.isValid
         _municipioError.value = municipality.isBlank()
 
         if (_usernameError.value) {
@@ -48,7 +49,7 @@ class RegisterViewModel : ViewModel() {
             return false
         }
         if (_passwordError.value) {
-            _registerState.value = RegisterState.Error("La contraseña debe estar conformada por al menos 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos especiales.")
+            _registerState.value = RegisterState.Error("La contrasena debe tener minimo 8 caracteres, mayuscula, minuscula y un caracter especial.")
             return false
         }
         if (_municipioError.value) {

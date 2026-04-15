@@ -19,7 +19,7 @@ object  RetrofitClient {
     // https://apifmc-production.up.railway.app/
     // Test@1234
 
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    private const val BASE_URL = "https://apifmc-production.up.railway.app/"
 
     private val authInterceptor = Interceptor { chain ->
         val token = SessionManager.getToken()

@@ -38,6 +38,7 @@ import mx.edu.utez.fmc_mobile.R
 import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
 import mx.edu.utez.fmc_mobile.ui.components.PasswordTxtField
+import mx.edu.utez.fmc_mobile.ui.components.PasswordRequirementsChecklist
 import mx.edu.utez.fmc_mobile.ui.components.PrimaryButton
 import mx.edu.utez.fmc_mobile.ui.components.StepIndicator
 import mx.edu.utez.fmc_mobile.ui.theme.AppTypography
@@ -116,6 +117,10 @@ fun RecoveryPassScreen(
                 placeHolder = "••••••••",
                 errorMessage = if (hasError) "" else null
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            PasswordRequirementsChecklist(password = password1)
 
             Spacer(modifier = Modifier.height(20.dp))
 

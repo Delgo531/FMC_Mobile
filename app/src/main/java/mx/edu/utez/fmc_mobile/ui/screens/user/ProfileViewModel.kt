@@ -9,6 +9,7 @@ import mx.edu.utez.fmc_mobile.data.remote.dto.request.DeactivateAccountRequest
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.UpdateUserRequest
 import mx.edu.utez.fmc_mobile.data.repository.AuthRepository
 import mx.edu.utez.fmc_mobile.data.repository.UserRepository
+import mx.edu.utez.fmc_mobile.utils.PasswordValidator
 import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 class ProfileViewModel : ViewModel() {
@@ -67,6 +68,11 @@ class ProfileViewModel : ViewModel() {
 
         if (municipality.isBlank()) {
             _updateState.value = UpdateProfileState.Error("Selecciona un municipio")
+            return
+        }
+
+        if (password.isNotBlank() && !PasswordValidator.evaluate(password).isValid) {
+            _updateState.value = UpdateProfileState.Error("La contrasena debe tener minimo 8 caracteres, mayuscula, minuscula y un caracter especial.")
             return
         }
 

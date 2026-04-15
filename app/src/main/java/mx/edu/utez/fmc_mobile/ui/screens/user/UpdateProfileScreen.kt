@@ -44,6 +44,7 @@ import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
 import mx.edu.utez.fmc_mobile.ui.components.DropDownField
 import mx.edu.utez.fmc_mobile.ui.components.PasswordTxtField
+import mx.edu.utez.fmc_mobile.ui.components.PasswordRequirementsChecklist
 import mx.edu.utez.fmc_mobile.ui.components.PrimaryButton
 import mx.edu.utez.fmc_mobile.ui.components.SuccessBottomSheet
 import mx.edu.utez.fmc_mobile.ui.components.TxtField
@@ -154,6 +155,10 @@ fun UpdateProfileScreen(navController: NavController, viewModel: ProfileViewMode
                 label = "Nueva Contraseña (Opcional)",
                 placeHolder = "Ingresa tu nueva contraseña"
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            PasswordRequirementsChecklist(password = password)
 
             Spacer(modifier = Modifier.height(20.dp))
 

@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -45,8 +44,8 @@ import mx.edu.utez.fmc_mobile.navigation.Routes
 import mx.edu.utez.fmc_mobile.ui.components.AppTopBar
 import mx.edu.utez.fmc_mobile.ui.components.ClickableText
 import mx.edu.utez.fmc_mobile.ui.components.DropDownField
-import mx.edu.utez.fmc_mobile.ui.components.InfoCard
 import mx.edu.utez.fmc_mobile.ui.components.PasswordTxtField
+import mx.edu.utez.fmc_mobile.ui.components.PasswordRequirementsChecklist
 import mx.edu.utez.fmc_mobile.ui.components.PrimaryButton
 import mx.edu.utez.fmc_mobile.ui.components.SimpleLabel
 import mx.edu.utez.fmc_mobile.ui.components.TxtField
@@ -190,17 +189,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            InfoCard(
-                title = "Pautas para contraseña:",
-                message = "La contraseña debe estar conformada por 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos especiales.",
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = Primary
-                    )
-                }
-            )
+            PasswordRequirementsChecklist(password = password)
 
             Spacer(modifier = Modifier.height(15.dp))
 
