@@ -5,9 +5,13 @@ import mx.edu.utez.fmc_mobile.data.remote.dto.request.LoginRequest
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.RegisterRequest
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.ResetPasswordRequest
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.VerifyResetCodeRequest
+import mx.edu.utez.fmc_mobile.data.remote.dto.response.PasswordResetStatusResponse
+import mx.edu.utez.fmc_mobile.data.remote.dto.response.StandardResponse
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface AuthApiService {
 
@@ -22,6 +26,9 @@ interface AuthApiService {
 
     @POST("api/auth/forgot-password")
     suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<Map<String, Any>>
+
+    @GET("api/auth/password-reset-status")
+    suspend fun getPasswordResetStatus(@Query("email") email: String): Response<StandardResponse<PasswordResetStatusResponse>>
 
     @POST("api/auth/verify-reset-code")
     suspend fun verifyResetCode(@Body request: VerifyResetCodeRequest): Response<Map<String, Any>>

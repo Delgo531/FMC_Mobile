@@ -48,6 +48,7 @@ import mx.edu.utez.fmc_mobile.ui.theme.FMC_MobileTheme
 import mx.edu.utez.fmc_mobile.ui.theme.Primary
 import mx.edu.utez.fmc_mobile.ui.theme.TextPrimary
 import mx.edu.utez.fmc_mobile.ui.theme.TextSecondary
+import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 @Composable
 fun LoginScreen(
@@ -60,6 +61,7 @@ fun LoginScreen(
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val hasRecoverySession = SessionManager.hasPasswordRecoverySession()
 
     val hasError = loginState is LoginState.Error
 
@@ -148,6 +150,19 @@ fun LoginScreen(
                     text = "¿Olvidaste tu contraseña?",
                     onClick = { navController.navigate(Routes.PASSRECOVERYEMAIL) }
                 )
+            }
+
+            if (hasRecoverySession) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    ClickableText(
+                        text = "Continuar recuperación",
+                        onClick = { navController.navigate(Routes.PASSRECOVERYEMAIL) }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(15.dp))

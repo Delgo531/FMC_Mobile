@@ -56,6 +56,12 @@ fun RecoveryPassCodeScreen(
     var otpValue by remember { mutableStateOf("") }
     var showBlockedDialog by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        if (viewModel.savedEmail.isBlank()) {
+            viewModel.resumeRecoveryFlow()
+        }
+    }
+
     LaunchedEffect(recoveryState) {
         if (recoveryState is RecoveryState.CodeVerified) {
             viewModel.resetState()
@@ -65,6 +71,12 @@ fun RecoveryPassCodeScreen(
         if (recoveryState is RecoveryState.IdentityVerificationFailed) {
             showBlockedDialog = true
             viewModel.resetState()
+        }
+
+        if (recoveryState is RecoveryState.Idle && viewModel.savedEmail.isBlank()) {
+            navController.navigate(Routes.PASSRECOVERYEMAIL) {
+                popUpTo(Routes.PASSRECOVERYEMAIL) { inclusive = true }
+            }
         }
     }
 

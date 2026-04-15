@@ -10,13 +10,22 @@ import mx.edu.utez.fmc_mobile.data.remote.dto.request.ResetPasswordRequest
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.VerifyResetCodeRequest
 import mx.edu.utez.fmc_mobile.data.repository.AuthRepository
 import mx.edu.utez.fmc_mobile.utils.PasswordValidator
+import mx.edu.utez.fmc_mobile.utils.SessionManager
 
 class RecoveryViewModel : ViewModel() {
 
+    companion object {
+        private const val STAGE_NO_ACTIVE_RESET = "NO_ACTIVE_RESET"
+        private const val STAGE_CODE_SENT = "CODE_SENT"
+        private const val STAGE_CODE_VERIFIED = "CODE_VERIFIED"
+        private const val STAGE_CODE_EXPIRED = "CODE_EXPIRED"
+        private const val STAGE_COOLDOWN = "COOLDOWN"
+    }
+
     private val repository = AuthRepository()
 
-    var savedEmail: String = ""
-    var savedResetToken: String = ""
+    var savedEmail: String = SessionManager.getRecoveryEmail()
+    var savedResetToken: String = SessionManager.getRecoveryResetToken()
 
     private val _recoveryState = MutableStateFlow<RecoveryState>(RecoveryState.Idle)
     val recoveryState: StateFlow<RecoveryState> = _recoveryState
@@ -33,6 +42,8 @@ class RecoveryViewModel : ViewModel() {
                 val response = repository.forgotPassword(ForgotPasswordRequest(email))
                 if (response.isSuccessful) {
                     savedEmail = email
+                    savedResetToken = ""
+                    SessionManager.savePasswordRecoverySession(email, STAGE_CODE_SENT)
                     _recoveryState.value = RecoveryState.EmailSent
                 } else {
                     val errorBody = response.errorBody()?.string()
@@ -42,6 +53,62 @@ class RecoveryViewModel : ViewModel() {
                         "Error al enviar el correo"
                     }
                     _recoveryState.value = RecoveryState.Error(errorMessage)
+                }
+            } catch (e: Exception) {
+                _recoveryState.value = RecoveryState.Error(e.message ?: "Error desconocido")
+            }
+        }
+    }
+
+    fun resumeRecoveryFlow() {
+        if (savedEmail.isBlank()) return
+
+        viewModelScope.launch {
+            _recoveryState.value = RecoveryState.Loading
+            try {
+                val response = repository.getPasswordResetStatus(savedEmail)
+                if (!response.isSuccessful) {
+                    _recoveryState.value = RecoveryState.Error("No se pudo validar la recuperación")
+                    return@launch
+                }
+
+                val status = response.body()?.data
+                if (status == null) {
+                    _recoveryState.value = RecoveryState.Idle
+                    return@launch
+                }
+
+                SessionManager.updatePasswordRecoveryStage(status.stage)
+
+                when (status.stage) {
+                    STAGE_CODE_SENT -> _recoveryState.value = RecoveryState.EmailSent
+
+                    STAGE_CODE_VERIFIED -> {
+                        _recoveryState.value = if (savedResetToken.isNotBlank()) {
+                            RecoveryState.CodeVerified
+                        } else {
+                            RecoveryState.EmailSent
+                        }
+                    }
+
+                    STAGE_CODE_EXPIRED -> {
+                        savedResetToken = ""
+                        SessionManager.savePasswordRecoverySession(savedEmail, STAGE_CODE_EXPIRED)
+                        _recoveryState.value = RecoveryState.Error("Tu código expiró. Vuelve a solicitar recuperación.")
+                    }
+
+                    STAGE_COOLDOWN -> {
+                        _recoveryState.value = RecoveryState.Error(
+                            "Ya tienes una recuperación activa. Continúa con el código enviado."
+                        )
+                    }
+
+                    STAGE_NO_ACTIVE_RESET -> {
+                        clearRecoverySession()
+                        _recoveryState.value = RecoveryState.Idle
+                    }
+
+                    else -> _recoveryState.value = RecoveryState.Idle
                 }
             } catch (e: Exception) {
                 _recoveryState.value = RecoveryState.Error(e.message ?: "Error desconocido")
@@ -68,6 +135,11 @@ class RecoveryViewModel : ViewModel() {
                     val body = response.body()
                     val data = body?.get("data") as? Map<*, *>
                     savedResetToken = data?.get("resetToken")?.toString() ?: ""
+                    SessionManager.savePasswordRecoverySession(
+                        email = savedEmail,
+                        stage = STAGE_CODE_VERIFIED,
+                        resetToken = savedResetToken
+                    )
                     _recoveryState.value = RecoveryState.CodeVerified
                 } else {
                     val errorBody = response.errorBody()?.string()
@@ -118,6 +190,7 @@ class RecoveryViewModel : ViewModel() {
                     )
                 )
                 if (response.isSuccessful) {
+                    clearRecoverySession()
                     _recoveryState.value = RecoveryState.PasswordReset
                 } else {
                     val errorBody = response.errorBody()?.string()
@@ -136,6 +209,12 @@ class RecoveryViewModel : ViewModel() {
 
     fun resetState() {
         _recoveryState.value = RecoveryState.Idle
+    }
+
+    fun clearRecoverySession() {
+        savedEmail = ""
+        savedResetToken = ""
+        SessionManager.clearPasswordRecoverySession()
     }
 }
 

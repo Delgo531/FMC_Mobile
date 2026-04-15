@@ -31,8 +31,12 @@ fun AppNavigation() {
     val recoveryViewModel: RecoveryViewModel = viewModel()
 
 
-    // Start on HOME if already logged in, LOGIN otherwise
-    val startDestination = if (SessionManager.isLoggedIn()) Routes.HOME else Routes.LOGIN
+    // Si existe una recuperación guardada, se intenta retomar desde la pantalla de email.
+    val startDestination = when {
+        SessionManager.isLoggedIn() -> Routes.HOME
+        SessionManager.hasPasswordRecoverySession() -> Routes.PASSRECOVERYEMAIL
+        else -> Routes.LOGIN
+    }
 
     NavHost(
         navController = navController,

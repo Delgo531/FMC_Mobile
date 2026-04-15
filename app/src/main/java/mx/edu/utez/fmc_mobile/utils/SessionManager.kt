@@ -18,6 +18,9 @@ object SessionManager {
     private const val KEY_HAS_PENDING_APPLICATION        = "has_pending_application"
     private const val KEY_HAS_PENDING_LEADER_APPLICATION = "has_pending_leader_application"
     private const val KEY_SHOWN_NOTIFICATION_IDS         = "shown_notification_ids"
+    private const val KEY_RECOVERY_EMAIL = "recovery_email"
+    private const val KEY_RECOVERY_STAGE = "recovery_stage"
+    private const val KEY_RECOVERY_RESET_TOKEN = "recovery_reset_token"
 
     private lateinit var prefs: SharedPreferences
 
@@ -77,6 +80,34 @@ object SessionManager {
     }
 
     fun isLoggedIn(): Boolean = getToken() != null
+
+    fun savePasswordRecoverySession(email: String, stage: String, resetToken: String? = null) {
+        prefs.edit()
+            .putString(KEY_RECOVERY_EMAIL, email)
+            .putString(KEY_RECOVERY_STAGE, stage)
+            .putString(KEY_RECOVERY_RESET_TOKEN, resetToken ?: "")
+            .apply()
+    }
+
+    fun updatePasswordRecoveryStage(stage: String) {
+        prefs.edit().putString(KEY_RECOVERY_STAGE, stage).apply()
+    }
+
+    fun getRecoveryEmail(): String = prefs.getString(KEY_RECOVERY_EMAIL, "") ?: ""
+
+    fun getRecoveryStage(): String = prefs.getString(KEY_RECOVERY_STAGE, "") ?: ""
+
+    fun getRecoveryResetToken(): String = prefs.getString(KEY_RECOVERY_RESET_TOKEN, "") ?: ""
+
+    fun hasPasswordRecoverySession(): Boolean = getRecoveryEmail().isNotBlank()
+
+    fun clearPasswordRecoverySession() {
+        prefs.edit()
+            .remove(KEY_RECOVERY_EMAIL)
+            .remove(KEY_RECOVERY_STAGE)
+            .remove(KEY_RECOVERY_RESET_TOKEN)
+            .apply()
+    }
 
     // Keyed by userId so different accounts don't share shown-notification state
     private fun shownKey(): String = "${KEY_SHOWN_NOTIFICATION_IDS}_${getUserId()}"

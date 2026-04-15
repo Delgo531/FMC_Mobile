@@ -55,12 +55,21 @@ fun RecoveryEmailScreen(
     viewModel: RecoveryViewModel = viewModel()
 ) {
     val recoveryState by viewModel.recoveryState.collectAsState()
-    var email by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(viewModel.savedEmail) }
+
+    LaunchedEffect(Unit) {
+        viewModel.resumeRecoveryFlow()
+    }
 
     LaunchedEffect(recoveryState) {
         if (recoveryState is RecoveryState.EmailSent) {
             viewModel.resetState()
             navController.navigate(Routes.PASSRECOVERYCODE)
+        }
+
+        if (recoveryState is RecoveryState.CodeVerified) {
+            viewModel.resetState()
+            navController.navigate(Routes.PASSRECOVERYPASS)
         }
     }
 

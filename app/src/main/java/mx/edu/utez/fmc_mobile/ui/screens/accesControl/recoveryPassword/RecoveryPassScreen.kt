@@ -56,11 +56,29 @@ fun RecoveryPassScreen(
     var password2 by remember { mutableStateOf("") }
     val hasError = recoveryState is RecoveryState.Error
 
+    LaunchedEffect(Unit) {
+        if (viewModel.savedResetToken.isBlank()) {
+            viewModel.resumeRecoveryFlow()
+        }
+    }
 
     LaunchedEffect(recoveryState) {
         if (recoveryState is RecoveryState.PasswordReset) {
             viewModel.resetState()
             navController.navigate(Routes.PASSRECOVERYSUCCES)
+        }
+
+        if (recoveryState is RecoveryState.EmailSent) {
+            viewModel.resetState()
+            navController.navigate(Routes.PASSRECOVERYCODE) {
+                popUpTo(Routes.PASSRECOVERYCODE) { inclusive = true }
+            }
+        }
+
+        if (recoveryState is RecoveryState.Idle && viewModel.savedResetToken.isBlank()) {
+            navController.navigate(Routes.PASSRECOVERYEMAIL) {
+                popUpTo(Routes.PASSRECOVERYEMAIL) { inclusive = true }
+            }
         }
     }
 
