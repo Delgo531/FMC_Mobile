@@ -35,7 +35,8 @@ class RegisterViewModel : ViewModel() {
     ): Boolean {
         _usernameError.value = username.isBlank()
         _emailError.value = email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-        _passwordError.value = password.isBlank() || password.length < 8
+        val passwordRegex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}\$".toRegex()
+        _passwordError.value = password.isBlank() || !password.matches(passwordRegex)
         _municipioError.value = municipality.isBlank()
 
         if (_usernameError.value) {
@@ -47,7 +48,7 @@ class RegisterViewModel : ViewModel() {
             return false
         }
         if (_passwordError.value) {
-            _registerState.value = RegisterState.Error("La contraseña debe tener mínimo 8 caracteres")
+            _registerState.value = RegisterState.Error("La contraseña debe estar conformada por al menos 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos especiales.")
             return false
         }
         if (_municipioError.value) {
