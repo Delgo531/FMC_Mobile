@@ -1,6 +1,7 @@
 package mx.edu.utez.fmc_mobile.ui.screens.user
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -28,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -67,6 +70,8 @@ fun UpdateProfileScreen(navController: NavController, viewModel: ProfileViewMode
     var showReloginSheet by remember { mutableStateOf(false) }
 
     val updateState by viewModel.updateState.collectAsState()
+    val isInSquad by viewModel.isInSquad.collectAsState()
+    val municipioLocked = isInSquad
 
     LaunchedEffect(updateState) {
         when (updateState) {
@@ -166,15 +171,37 @@ fun UpdateProfileScreen(navController: NavController, viewModel: ProfileViewMode
                 label = "Municipio *",
                 options = Constants.municipiosMorelos,
                 selectedOption = municipio,
-                onOptionSelected = { municipio = it },
+                onOptionSelected = { if (!municipioLocked) municipio = it },
+                enabled = !municipioLocked,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Map,
                         contentDescription = null,
-                        tint = Primary
+                        tint = if (municipioLocked) TextSecondary else Primary
                     )
                 }
             )
+
+            if (municipioLocked) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = TextSecondary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "No puedes cambiar de municipio mientras perteneces a una cuadrilla.",
+                        style = AppTypography.Caption,
+                        color = TextSecondary
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 

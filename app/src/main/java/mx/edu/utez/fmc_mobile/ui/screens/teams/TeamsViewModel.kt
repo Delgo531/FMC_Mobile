@@ -252,10 +252,13 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
     fun leaveSquad(password: String) {
         _leaveSquadError.value = null
 
-        // Validación local: no permitir salir si hay denuncias activas en la cuadrilla
+        // Validación local: no permitir salir si hay denuncias activas en la cuadrilla.
+        // Se excluyen reportes cuyo reportStatus ya sea CLOSED, pues el backend los considera
+        // resueltos aunque el assignmentStatus aún figure como ACCEPTED.
         val hasPending = _assignedReports.value.any {
             val s = it.assignmentStatus.uppercase()
-            s == "PENDING_VOTE" || s == "ACCEPTED" || s == "ON_THE_WAY" || s == "IN_PROGRESS"
+            val r = it.reportStatus.uppercase()
+            r != "CLOSED" && (s == "PENDING_VOTE" || s == "ACCEPTED" || s == "ON_THE_WAY" || s == "IN_PROGRESS")
         }
         if (hasPending) {
             _leaveSquadError.value =

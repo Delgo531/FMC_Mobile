@@ -142,7 +142,10 @@ fun Home(navController: NavController, viewModel: HomeViewModel = viewModel()) {
                                 ReportCard(
                                     username = report.citizenUsername,
                                     createdAt = report.createdAt,
-                                    status = report.status,
+                                    // REJECTED es un estado interno de cuadrilla; al ciudadano
+                                    // se le muestra como "Registrado" para no generar confusión.
+                                    status = if (report.status.equals("REJECTED", ignoreCase = true))
+                                        "REGISTERED" else report.status,
                                     title = report.title,
                                     address = report.address,
                                     description = report.description,

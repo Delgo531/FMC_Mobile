@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.DeactivateAccountRequest
 import mx.edu.utez.fmc_mobile.data.remote.dto.request.UpdateUserRequest
 import mx.edu.utez.fmc_mobile.data.repository.AuthRepository
+import mx.edu.utez.fmc_mobile.data.repository.ReportAssignmentRepository
 import mx.edu.utez.fmc_mobile.data.repository.UserRepository
 import mx.edu.utez.fmc_mobile.utils.PasswordValidator
 import mx.edu.utez.fmc_mobile.utils.SessionManager
@@ -16,6 +17,7 @@ class ProfileViewModel : ViewModel() {
 
     private val authRepository = AuthRepository()
     private val userRepository = UserRepository()
+    private val assignmentRepository = ReportAssignmentRepository()
 
     private val _username = MutableStateFlow(SessionManager.getUsername())
     val username: StateFlow<String> = _username
@@ -35,8 +37,26 @@ class ProfileViewModel : ViewModel() {
     private val _deactivateState = MutableStateFlow<DeactivateState>(DeactivateState.Idle)
     val deactivateState: StateFlow<DeactivateState> = _deactivateState
 
+    // true cuando el usuario es voluntario y pertenece a una cuadrilla activa
+    private val _isInSquad = MutableStateFlow(false)
+    val isInSquad: StateFlow<Boolean> = _isInSquad
+
     init {
         refreshProfile()
+        checkSquadMembership()
+    }
+
+    private fun checkSquadMembership() {
+        viewModelScope.launch {
+            try {
+                val response = assignmentRepository.getMySquadRole()
+                if (response.isSuccessful) {
+                    val data = response.body()?.get("data") as? Map<*, *>
+                    val squadName = data?.get("squadName")?.toString() ?: ""
+                    _isInSquad.value = squadName.isNotBlank()
+                }
+            } catch (_: Exception) { }
+        }
     }
 
     fun refreshProfile() {
@@ -68,6 +88,16 @@ class ProfileViewModel : ViewModel() {
 
         if (municipality.isBlank()) {
             _updateState.value = UpdateProfileState.Error("Selecciona un municipio")
+            return
+        }
+
+        // Cualquier miembro de una cuadrilla (voluntario o líder) no puede cambiar de municipio,
+        // ya que opera en el municipio asignado a su cuadrilla.
+        if (_isInSquad.value &&
+            !municipality.equals(SessionManager.getMunicipality(), ignoreCase = true)) {
+            _updateState.value = UpdateProfileState.Error(
+                "No puedes cambiar de municipio mientras perteneces a una cuadrilla activa."
+            )
             return
         }
 

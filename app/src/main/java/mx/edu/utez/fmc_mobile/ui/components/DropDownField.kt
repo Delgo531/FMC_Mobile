@@ -42,6 +42,7 @@ fun DropDownField(
     selectedOption: String,
     onOptionSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     leadingIcon: @Composable (() -> Unit)? = null,
     errorMessage: String? = null
 ) {
@@ -58,35 +59,38 @@ fun DropDownField(
 
         @OptIn(ExperimentalMaterial3Api::class)
         ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
+            expanded = expanded && enabled,
+            onExpandedChange = { if (enabled) expanded = !expanded }
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                shadowElevation = 4.dp,
-                color = Background
+                shadowElevation = if (enabled) 4.dp else 0.dp,
+                color = if (enabled) Background else CompletedText.copy(alpha = 0.08f)
             ) {
                 TextField(
                     value = selectedOption,
                     onValueChange = {},
                     readOnly = true,
+                    enabled = enabled,
                     placeholder = { Text("Selecciona una opción", color = TextSecondary) },
                     leadingIcon = leadingIcon,
                     trailingIcon = {
                         Icon(
-                            imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            imageVector = if (expanded && enabled) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = Primary
+                            tint = if (enabled) Primary else TextSecondary
                         )
                     },
                     colors = TextFieldDefaults.colors(
                         focusedTextColor = TextPrimary,
                         unfocusedTextColor = TextPrimary,
+                        disabledTextColor = TextSecondary,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent,
                         focusedContainerColor = if (errorMessage != null) FondoError else Surface,
-                        unfocusedContainerColor = if (errorMessage != null) FondoError else Surface
+                        unfocusedContainerColor = if (errorMessage != null) FondoError else Surface,
+                        disabledContainerColor = Surface
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -96,7 +100,7 @@ fun DropDownField(
             }
 
             ExposedDropdownMenu(
-                expanded = expanded,
+                expanded = expanded && enabled,
                 onDismissRequest = { expanded = false }
             ) {
                 options.forEach { option ->

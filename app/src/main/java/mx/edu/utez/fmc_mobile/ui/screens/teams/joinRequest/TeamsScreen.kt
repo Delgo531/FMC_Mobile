@@ -272,19 +272,22 @@ fun TeamsScreen(navController: NavController, viewModel: TeamsViewModel = viewMo
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Whitelist explícita: estados activos en Pendientes, terminales en Resueltos.
+                        // Se ocultan completamente:
+                        //  - reportStatus == REJECTED   (reporte descartado por admin/cuadrilla)
+                        //  - assignmentStatus == REJECTED_TIMEOUT / REJECTED_VOTES (votación fallida)
+                        // Del resto: Pendientes → reportStatus != CLOSED; Resueltos → reportStatus == CLOSED.
+                        val visibleReports = assignedReports.filter {
+                            !it.reportStatus.equals("REJECTED", ignoreCase = true) &&
+                            !it.assignmentStatus.equals("REJECTED_TIMEOUT", ignoreCase = true) &&
+                            !it.assignmentStatus.equals("REJECTED_VOTES", ignoreCase = true)
+                        }
                         val filteredReports = if (selectedTab == 0) {
-                            assignedReports.filter {
-                                it.assignmentStatus.equals("PENDING_VOTE", ignoreCase = true) ||
-                                it.assignmentStatus.equals("ACCEPTED", ignoreCase = true) ||
-                                it.assignmentStatus.equals("ON_THE_WAY", ignoreCase = true) ||
-                                it.assignmentStatus.equals("IN_PROGRESS", ignoreCase = true)
+                            visibleReports.filter {
+                                !it.reportStatus.equals("CLOSED", ignoreCase = true)
                             }
                         } else {
-                            assignedReports.filter {
-                                it.assignmentStatus.equals("CLOSED", ignoreCase = true) ||
-                                it.assignmentStatus.equals("COMPLETED", ignoreCase = true) ||
-                                it.assignmentStatus.equals("REJECTED", ignoreCase = true)
+                            visibleReports.filter {
+                                it.reportStatus.equals("CLOSED", ignoreCase = true)
                             }
                         }
 
